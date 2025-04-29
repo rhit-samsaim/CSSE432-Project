@@ -1,9 +1,9 @@
-import threading
 import sys
-from typing import Optional
+import threading
 import pygame
 from server import Server
 from client import Client
+from typing import Optional
 
 # This is SOLELY to remove yellow highlighting errors that are like "This is set to Nona, may error"
 screen: Optional[pygame.Surface] = None
@@ -70,7 +70,6 @@ def draw_menu():
     pygame.display.flip()
     return host_btn, join_btn
 
-
 def main_menu():
     global get_IP, text_input
     init_gui()
@@ -98,7 +97,6 @@ def main_menu():
                     else:
                         text_input += event.unicode
 
-
 def run_as_host():
     print("starting as host...")
     server = Server()
@@ -112,7 +110,3 @@ def run_as_client(ip):
     did_connect = client.connect()
     if not did_connect:
         get_IP = False
-
-
-if __name__ == "__main__":
-    main_menu()
