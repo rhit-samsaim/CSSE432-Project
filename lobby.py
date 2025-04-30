@@ -22,7 +22,7 @@ def draw_screen(connected_count, max_clients):
 
     # Display connection count
     status_font = pygame.font.SysFont(None, 24)
-    status_text = status_font.render(f"{connected_count} / {max_clients} players connected", True, (0, 0, 0))
+    status_text = status_font.render(f"{connected_count + 1} / {max_clients + 1} players connected", True, (0, 0, 0))
     screen.blit(status_text, (20, height - 40))
 
     # Update entire screen with new content
