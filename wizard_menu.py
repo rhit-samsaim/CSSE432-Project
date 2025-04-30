@@ -1,9 +1,7 @@
 import sys
-import threading
 import pygame
-from server import Server
-from client import Client
 from typing import Optional
+from scenes import init_gui, draw_button
 
 # This is SOLELY to remove yellow highlighting errors that are like "This is set to Nona, may error"
 screen: Optional[pygame.Surface] = None
@@ -15,44 +13,41 @@ size = None
 get_IP = None
 text_input = ''
 active = False
-
-
-def init_gui():
-    global screen, font, width, height, size, get_IP
-
-    pygame.init()
-    width, height = 1200, 800
-
-    screen = pygame.display.set_mode((width, height))
-    pygame.display.set_caption("Wizard Game Menu")
-    font = pygame.font.SysFont("", 40)
-
-    size = (width, height)
-    get_IP = False
-
-
-def draw_button(text, x, y, w, h, color):
-    rect = pygame.Rect(x, y, w, h)
-    pygame.draw.rect(screen, color, rect, border_radius=10)
-    label = font.render(text, True, (255, 255, 255))
-    label_rect = label.get_rect(center=rect.center)
-    screen.blit(label, label_rect)
-    return rect
+color_cycle = 1
+color1 = 255
+color2 = 0
+color3 = 0
+logo_width = 0
+logo_height = 0
+logo_growing = True
 
 
 def draw_menu():
-    btn_color = (255, 36, 0)
-    background_color = (19, 56, 190)
+    global color1, color2, color3, logo_width, logo_height, logo_growing
+    btn_color = (255, 255, 255)
+    adjust_color()
+    background_color = (color1, color2, color3)
     btn_w = 200
     btn_h = 60
 
     screen.fill(background_color)
-    host_btn = draw_button("Host Game", (width / 2 - btn_w / 2), (height / 2 + 100), btn_w, btn_h, btn_color)
-    join_btn = draw_button("Join Game", (width / 2 - btn_w / 2), (height / 2 + 200), btn_w, btn_h, btn_color)
+    host_btn = draw_button(screen, font, "Host Game", (width / 2 - btn_w / 2), (height / 2 + 100), btn_w, btn_h, btn_color, (0, 0, 0))
+    join_btn = draw_button(screen, font, "Join Game", (width / 2 - btn_w / 2), (height / 2 + 200), btn_w, btn_h, btn_color, (0, 0, 0))
+
+    if logo_growing:
+        logo_width += 1
+        logo_height += 0.5
+        if logo_width == 100:
+            logo_growing = False
+    else:
+        logo_width -= 1
+        logo_height -= 0.5
+        if logo_width == 0:
+            logo_growing = True
 
     logo = pygame.image.load("assets/wizard-logo.png")
-    logo = pygame.transform.scale(logo, (600, 300))
-    screen.blit(logo, (300, 100))
+    logo = pygame.transform.scale(logo, (600 + logo_width, 300 + logo_height))
+    screen.blit(logo, (300 - logo_width/2, 100 - logo_height/2))
 
     if get_IP:
         rect1 = pygame.Rect((width / 2 - 150), (height / 2 - 50), 300, 100)
@@ -70,9 +65,11 @@ def draw_menu():
     pygame.display.flip()
     return host_btn, join_btn
 
+
 def main_menu():
-    global get_IP, text_input
-    init_gui()
+    global get_IP, text_input, screen, font, width, height, size
+    screen, font, width, height, size = init_gui(screen, font, width, height, size)
+    get_IP = False
 
     while True:
         host_btn, join_btn = draw_menu()
@@ -84,29 +81,56 @@ def main_menu():
             if not get_IP:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if host_btn.collidepoint(event.pos):
-                        run_as_host()
+                        return -1
                     elif join_btn.collidepoint(event.pos):
                         get_IP = True
             else:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
                         print(f"Typed IP: {text_input}")
-                        run_as_client(text_input)
+                        return text_input
                     elif event.key == pygame.K_BACKSPACE:
                         text_input = text_input[:-1]
                     else:
                         text_input += event.unicode
 
-def run_as_host():
-    print("starting as host...")
-    server = Server()
-    threading.Thread(target=server.start, daemon=True).start()
-    server.start()
 
 
-def run_as_client(ip):
-    global get_IP
-    client = Client(ip)
-    did_connect = client.connect()
-    if not did_connect:
-        get_IP = False
+def adjust_color():
+    global color_cycle, color1, color2, color3
+    if color_cycle == 1:
+        if color2 != 255:
+            color2 += 1
+        else:
+            color_cycle = 2
+            color1 -= 1
+    elif color_cycle == 2:
+        if color1 != 0:
+            color1 -= 1
+        else:
+            color_cycle = 3
+            color3 += 1
+    elif color_cycle == 3:
+        if color3 != 255:
+            color3 += 1
+        else:
+            color_cycle = 4
+            color2 -= 1
+    elif color_cycle == 4:
+        if color2 != 0:
+            color2 -= 1
+        else:
+            color_cycle = 5
+            color1 += 1
+    elif color_cycle == 5:
+        if color1 != 255:
+            color1 += 1
+        else:
+            color_cycle = 6
+            color3 -= 1
+    else:
+        if color3 != 0:
+            color3 -= 1
+        else:
+            color_cycle = 1
+            color2 += 1
