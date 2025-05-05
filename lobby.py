@@ -66,7 +66,6 @@ def create_lobby(server):
 
     while True:
         connected_count = len(server.connected_clients)
-        print(f"Ready Statuses is: {server.ready_statuses}")
         for i, client in enumerate(server.connected_clients):
             try:
                 client.send("status")
