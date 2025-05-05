@@ -28,3 +28,11 @@ class Client:
         except:
             print("Receive failed")
             return ""
+
+    def handle_ready_states(self):
+        while True:
+            message = self.receive()
+            if message.startswith("update_ready_states:"):
+                ready_states = message[len("update_ready_states:"):].split(',')
+                print("Updated Ready States:", ready_states)
+                return ready_states

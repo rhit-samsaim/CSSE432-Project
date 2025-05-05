@@ -37,7 +37,7 @@ def draw_screen(connected_count, max_clients, ready_states):
         # Draw player label
         player_text_font = pygame.font.SysFont(None, 80)
         player_text = player_text_font.render(f"Player {i + 1}", True, (0, 0, 0))
-        screen.blit(player_text, (box_x_pos + 10, box_y_pos + 25))
+        screen.blit(player_text, (box_x_pos + 15, box_y_pos + 25))
 
         #Draw status image
         if i < len(ready_states) and ready_states[i]:
@@ -65,54 +65,48 @@ def create_lobby(server):
     isClient = False
 
     while True:
+        connected_count = len(server.connected_clients)
+        print(f"Ready Statuses is: {server.ready_statuses}")
+        for i, client in enumerate(server.connected_clients):
+            try:
+                client.send("status")
+                response = client.recieve()
+                server.ready_statuses[i + 1] = response.strip()
+            except:
+                temp = 0
+
+        ready_btn, start_btn = draw_screen(connected_count, server.max_clients, server.ready_statuses)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
-        try:
-            connected_count = len(server.connected_clients)
-
-            # Build the list of ready states by pinging each client
-            ready_states = []
-            with server.lock:
-                for client in server.connected_clients:
-                    try:
-                        client.sendall("status".encode("utf-8"))
-                        response = client.recv(1024).decode("utf-8")
-                        parts = response.split(",")
-                        if len(parts) >= 3:
-                            ready_states.append(parts[2] == "1")
-                        else:
-                            ready_states.append(False)
-                    except:
-                        ready_states.append(False)
-
-            draw_screen(connected_count, server.max_clients, ready_states)
-
-        except Exception as e:
-            print(f"Error in create_lobby: {e}")
-            draw_screen(0, server.max_clients, [])
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if ready_btn.collidepoint(event.pos):
+                    server.ready_statuses[0] = True
+                elif start_btn.collidepoint(event.pos):
+                    length = len(server.ready_statuses)
+                    if length < 3:
+                        continue
+                    for i in range(length):
+                        if not server.ready_statuses[i]:
+                            continue
+                    return 0
 
 
 def create_client_lobby(client):
     global screen, font, width, height, size, isClient
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
-    ready_clicked = False  # Track if client has clicked ready
 
     while True:
         try:
-            client.send("status")
-            response = client.receive()
-            parts = response.split(",")
-            connected_count = int(parts[0])
-            max_clients = int(parts[1])
-            ready_states = int(parts[2])
+            ready_states = request_ready_states(client)
+            connected_count = len(ready_states)
         except:
-            connected_count, max_clients = 1, 5
             ready_states = [False]
+            connected_count = 1
 
-        ready_btn, _ = draw_screen(connected_count, max_clients, ready_states)
+        ready_btn, _ = draw_screen(connected_count - 1, 5, ready_states)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -120,7 +114,22 @@ def create_client_lobby(client):
                 return
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = event.pos
-                if ready_btn.collidepoint(mouse_pos) and not ready_clicked:
+                if ready_btn.collidepoint(mouse_pos):
                     client.send("ready")
-                    ready_clicked = True
 
+
+def request_ready_states(client):
+    try:
+        client.send("request_ready_states")
+        response = client.receive()
+
+        if response.startswith("update_ready_states:"):
+            ready_states_str = response[len("update_ready_states:"):]
+            # Convert the string back into a list of booleans
+            ready_states = [state == "True" for state in ready_states_str.split(',')]
+            return ready_states
+        else:
+            return []
+    except Exception as e:
+        print(f"Error receiving ready states: {e}")
+        return []
