@@ -1,0 +1,40 @@
+@startuml
+
+class Server {
+	clients: Client[]
+
+}
+
+class Client {
+	id: int
+	points: int
+	cards: Card[]
+	{method} sendACK(ack_val: int): void
+	{method} recvACK(): void
+	{method} sendBid(): void
+	{method} sendCard(): void
+
+}
+
+class Game {
+	players: int[]
+	deal_num: int
+	current_trump: Suit
+	{method} execute_turn(): void
+	{method} deal_cards(): void
+	{method} getBids(): void
+}
+
+class Card {
+  id: int # this corresponds with the value of the card
+	suit: Suit
+}
+
+enum Suit {
+  HEART
+	DIAMOND
+	SPADE
+	CLUB
+}
+
+@enduml
