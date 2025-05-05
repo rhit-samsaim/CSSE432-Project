@@ -39,6 +39,15 @@ def draw_screen(connected_count, max_clients, ready_states):
         player_text = player_text_font.render(f"Player {i + 1}", True, (0, 0, 0))
         screen.blit(player_text, (box_x_pos + 10, box_y_pos + 25))
 
+        #Draw status image
+        if i < len(ready_states) and ready_states[i]:
+            ready_img = pygame.image.load("assets/is_ready.png")
+            ready_img = pygame.transform.scale(ready_img, (70, 70))
+            screen.blit(ready_img, (box_x_pos + 300, box_y_pos + 15))
+        else:
+            not_ready_img = pygame.image.load("assets/not_ready.png")
+            not_ready_img = pygame.transform.scale(not_ready_img, (70, 70))
+            screen.blit(not_ready_img, (box_x_pos + 300, box_y_pos + 15))
 
     # Display connection count
     status_font = pygame.font.SysFont(None, 60)
@@ -92,6 +101,18 @@ def create_client_lobby(client):
     ready_clicked = False  # Track if client has clicked ready
 
     while True:
+        try:
+            client.send("status")
+            response = client.receive()
+            parts = response.split(",")
+            connected_count = int(parts[0])
+            max_clients = int(parts[1])
+            ready_states = int(parts[2])
+        except:
+            connected_count, max_clients = 1, 5
+            ready_states = [False]
+
+        ready_btn, _ = draw_screen(connected_count, max_clients, ready_states)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -102,18 +123,4 @@ def create_client_lobby(client):
                 if ready_btn.collidepoint(mouse_pos) and not ready_clicked:
                     client.send("ready")
                     ready_clicked = True
-
-        try:
-            client.send("status")
-            response = client.receive()
-            parts = response.split(",")
-            connected_count = int(parts[0])
-            max_clients = int(parts[1])
-            ready_states = [p == "1" for p in parts[2:]]
-        except:
-            connected_count, max_clients = 1, 5
-            ready_states = [False]
-
-        # Draw everything
-        ready_btn, _ = draw_screen(connected_count, max_clients, ready_states)
 
