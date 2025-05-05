@@ -4,11 +4,11 @@ import pygame
 def init_gui(screen, font, width, height, size):
 
     pygame.init()
-    width, height = 1200, 800
+    width, height = 1800, 1200
 
     screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption("Wizard!!!")
-    font = pygame.font.SysFont("", 40)
+    font = pygame.font.SysFont("", 70)
 
     size = (width, height)
 

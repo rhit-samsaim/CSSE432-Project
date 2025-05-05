@@ -27,17 +27,17 @@ def draw_menu():
     btn_color = (255, 255, 255)
     adjust_color()
     background_color = (color1, color2, color3)
-    btn_w = 200
-    btn_h = 60
+    btn_w = 300
+    btn_h = 100
 
     screen.fill(background_color)
     host_btn = draw_button(screen, font, "Host Game", (width / 2 - btn_w / 2), (height / 2 + 100), btn_w, btn_h, btn_color, (0, 0, 0))
-    join_btn = draw_button(screen, font, "Join Game", (width / 2 - btn_w / 2), (height / 2 + 200), btn_w, btn_h, btn_color, (0, 0, 0))
+    join_btn = draw_button(screen, font, "Join Game", (width / 2 - btn_w / 2), (height / 2 + 300), btn_w, btn_h, btn_color, (0, 0, 0))
 
     if logo_growing:
         logo_width += 1
         logo_height += 0.5
-        if logo_width == 100:
+        if logo_width == 200:
             logo_growing = False
     else:
         logo_width -= 1
@@ -46,20 +46,20 @@ def draw_menu():
             logo_growing = True
 
     logo = pygame.image.load("assets/wizard-logo.png")
-    logo = pygame.transform.scale(logo, (600 + logo_width, 300 + logo_height))
-    screen.blit(logo, (300 - logo_width/2, 100 - logo_height/2))
+    logo = pygame.transform.scale(logo, (800 + logo_width, 400 + logo_height))
+    screen.blit(logo, ((width / 2) - (400 + logo_width/2) , 150 - logo_height/2))
 
     if get_IP:
-        rect1 = pygame.Rect((width / 2 - 150), (height / 2 - 50), 300, 100)
-        text_box = pygame.Rect((width / 2 - 125), (height / 2 - 10), 250, 50)
+        rect1 = pygame.Rect((width / 2 - 250), (height / 2 - 50), 500, 200)
+        text_box = pygame.Rect((width / 2 - 230), (height / 2 + 20), 460, 100)
         pygame.draw.rect(screen, (187, 187, 187), rect1)
         pygame.draw.rect(screen, (238, 238, 238), text_box)
 
         # Draw text input
         text_caption = font.render("Enter Host IP Below:", True, (0, 0, 0))
-        screen.blit(text_caption, ((width / 2 - 200) + 60, (height / 2 - 40)))
+        screen.blit(text_caption, ((width / 2 - 250) + 10, (height / 2 - 50) + 10))
         input_surface = font.render(text_input, True, (0, 0, 0))
-        screen.blit(input_surface, (text_box.x + 10, text_box.y + 18))
+        screen.blit(input_surface, (text_box.x + 10, text_box.y + 30))
 
     # Update entire screen with new content
     pygame.display.flip()

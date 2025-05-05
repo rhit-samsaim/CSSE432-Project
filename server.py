@@ -7,7 +7,7 @@ class Server:
         self.max_clients = max_clients
         self.port = port
         self.connected_clients = []
-        self.lock = threading.Lock()  # Lock to ensure thread-safe access
+        self.lock = threading.Lock()  # Lock to ensure thread-safe
         self.running = False  # Flag to see if server is running
 
     def start(self):
@@ -26,7 +26,6 @@ class Server:
         # Loop to continuously accept new clients
         while self.running and len(self.connected_clients) < self.max_clients:
             client_sock, addr = server_sock.accept()
-            # Add new client socket to list on connected clients
             with self.lock:
                 self.connected_clients.append(client_sock)
             print(f"Client connected: {addr}")
@@ -37,12 +36,32 @@ class Server:
     def handle_client(self, client_sock):
         while self.running:
             try:
-                # Receive message form client
-                msg = client_sock.recv(1024).decode('utf-8')
+                msg = client_sock.recv(1024).decode('utf-8').strip()
+                if not msg:
+                    break
+
                 if msg == "status":
-                    # If client asks for status, respond with current connection
                     with self.lock:
-                        status = f"{len(self.connected_clients)},{self.max_clients}"
-                    client_sock.sendall(status.encode('utf-8'))
+                        count = len(self.connected_clients)
+                        readiness_flags = [str(int(ready)) for (_, ready) in self.connected_clients]
+                        response = f"{count},{self.max_clients}," + ",".join(readiness_flags)
+                    client_sock.sendall(response.encode('utf-8'))
+
+                elif msg == "ready":
+                    with self.lock:
+                        for i, (sock, ready) in enumerate(self.connected_clients):
+                            if sock == client_sock:
+                                self.connected_clients[i] = (sock, True)
+                                print("Client marked as ready")
+                                break
             except:
                 break
+
+        # Clean up if client disconnects
+        with self.lock:
+            self.connected_clients = [(sock, ready) for (sock, ready) in self.connected_clients if sock != client_sock]
+        client_sock.close()
+
+    def get_clients(self, index):
+        with self.lock:
+            return self.connected_clients[index][0]  # only return socket

@@ -15,3 +15,16 @@ class Client:
         except Exception as e:
             print("Connection failed: {e}")
             return False
+
+    def send(self, message):
+        try:
+            self.client_socket.sendall(message.encode('utf-8'))
+        except:
+            print("Send failed")
+
+    def receive(self):
+        try:
+            return self.client_socket.recv(1024).decode('utf-8')
+        except:
+            print("Receive failed")
+            return ""
