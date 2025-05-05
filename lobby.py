@@ -26,7 +26,7 @@ def draw_screen(connected_count, max_clients, ready_states):
     for i in range(connected_count + 1):
         if i > 2:
             box_x_pos = 700
-            box_y_pos = 200 * (i - 2) + 100
+            box_y_pos = 200 * (i - 3) + 100
         else:
             box_x_pos = 200
             box_y_pos = 200 * i + 100
