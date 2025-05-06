@@ -16,6 +16,8 @@ def run_as_host():
     server = Server()
     server.start()
     create_lobby(server)
+    while True:
+        print("Temp to keep server up")
 
 
 def run_as_client(ip):

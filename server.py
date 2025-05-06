@@ -10,6 +10,7 @@ class Server:
         self.ready_statuses = [False]
         self.lock = threading.Lock()  # Lock to ensure thread-safe
         self.running = False  # Flag to see if server is running
+        self.start_game = False
 
     def start(self):
         self.running = True
@@ -58,6 +59,11 @@ class Server:
                     with self.lock:
                         ready_states_str = ','.join(map(str, self.ready_statuses))
                         client_sock.sendall(f"update_ready_states:{ready_states_str}".encode('utf-8'))
+
+                elif msg == "start_game?":
+                    with self.lock:
+                        response = f"{self.start_game}"
+                        client_sock.sendall(response.encode('utf-8'))
 
             except:
                 break
