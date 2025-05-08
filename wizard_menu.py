@@ -70,10 +70,10 @@ def main_menu():
     global get_IP, text_input, screen, font, width, height, size
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
     get_IP = False
+    clock = pygame.time.Clock()
 
     while True:
         host_btn, join_btn = draw_menu()
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()

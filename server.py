@@ -1,5 +1,6 @@
 import socket
 import threading
+from game import Game
 
 
 class Server:
@@ -10,6 +11,7 @@ class Server:
         self.ready_statuses = [False]
         self.lock = threading.Lock()  # Lock to ensure thread-safe
         self.running = False  # Flag to see if server is running
+        self.game = Game(self.connected_clients)
 
     def start(self):
         self.running = True
