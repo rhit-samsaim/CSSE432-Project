@@ -82,9 +82,3 @@ class Card:
 
     def to_string(self): # for debugging
         return f"ID = {card_dict[self.ID]} suit = {suit_dict[self.suit]}"
-
-class Player:
-    def __init__(self, ID, cli_sock):
-        self.ID = ID
-        self.cli_sock = cli_sock
-        print("implement Player")
