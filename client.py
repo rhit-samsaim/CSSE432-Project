@@ -20,7 +20,8 @@ class Client:
         try:
             self.client_socket.sendall(message.encode('utf-8'))
         except:
-            print("Send failed")
+            # print("Send failed")
+            return
 
     def receive(self):
         try:

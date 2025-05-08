@@ -36,10 +36,8 @@ class Game:
         self.player_hands = []
         self.deck = []
         self.init_deck()
-        self.print_cards(self.deck)
         self.round = 1
         self.num_rounds = 60 // self.num_players
-        self.simulate_game()
 
     def deal(self):
         card_idx = 0

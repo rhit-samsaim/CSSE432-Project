@@ -1,3 +1,7 @@
+import sys
+
+import pygame
+
 from server import Server
 from client import Client
 from wizard_menu import main_menu
@@ -16,6 +20,11 @@ def run_as_host():
     server = Server()
     server.start()
     create_lobby(server)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
 
 def run_as_client(ip):

@@ -11,10 +11,12 @@ class Server:
         self.ready_statuses = [False]
         self.lock = threading.Lock()  # Lock to ensure thread-safe
         self.running = False  # Flag to see if server is running
-        self.game = Game(self.connected_clients)
+        self.start_game = False
+        self.game = None
 
     def start(self):
         self.running = True
+        self.game = Game(self.connected_clients)
         threading.Thread(target=self.listen_for_clients, daemon=True).start()
 
     def listen_for_clients(self):
@@ -60,6 +62,11 @@ class Server:
                     with self.lock:
                         ready_states_str = ','.join(map(str, self.ready_statuses))
                         client_sock.sendall(f"update_ready_states:{ready_states_str}".encode('utf-8'))
+
+                elif msg == "start_game?":
+                    with self.lock:
+                        response = f"{self.start_game}"
+                        client_sock.sendall(response.encode('utf-8'))
 
             except:
                 break

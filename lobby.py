@@ -90,6 +90,7 @@ def create_lobby(server):
                     for i in range(length):
                         if not server.ready_statuses[i]:
                             continue
+                    server.start_game = True
                     return 0
 
 
@@ -98,6 +99,11 @@ def create_client_lobby(client):
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
 
     while True:
+        client.send("start_game?")
+        response = client.receive()
+        if response == "True" or "":
+            return 0  # Start Gameplay
+
         try:
             ready_states = request_ready_states(client)
             connected_count = len(ready_states)
@@ -132,3 +138,4 @@ def request_ready_states(client):
     except Exception as e:
         print(f"Error receiving ready states: {e}")
         return []
+
