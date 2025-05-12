@@ -85,8 +85,8 @@ def create_lobby(server):
                     server.ready_statuses[0] = True
                 elif start_btn.collidepoint(event.pos):
                     length = len(server.ready_statuses)
-                    if length < 3:
-                        continue
+                    # if length < 3:
+                    #     continue
                     for i in range(length):
                         if not server.ready_statuses[i]:
                             continue

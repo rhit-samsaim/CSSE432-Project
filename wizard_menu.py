@@ -47,7 +47,7 @@ def draw_menu():
 
     logo = pygame.image.load("assets/wizard-logo.png")
     logo = pygame.transform.scale(logo, (800 + logo_width, 400 + logo_height))
-    screen.blit(logo, ((width / 2) - (400 + logo_width/2) , 150 - logo_height/2))
+    screen.blit(logo, ((width / 2) - (400 + logo_width/2), 150 - logo_height/2))
 
     if get_IP:
         rect1 = pygame.Rect((width / 2 - 250), (height / 2 - 50), 500, 200)

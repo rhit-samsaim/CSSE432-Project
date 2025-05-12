@@ -1,10 +1,9 @@
 import socket
 import threading
-from game import Game
 
 
 class Server:
-    def __init__(self, max_clients=5, port=5412):
+    def __init__(self, max_clients=5, port=5413):
         self.max_clients = max_clients
         self.port = port
         self.connected_clients = []
@@ -13,10 +12,14 @@ class Server:
         self.running = False  # Flag to see if server is running
         self.start_game = False
         self.game = None
+        self.current_player = None
+        self.player_bids = []
+        self.client_hands = []
+        self.all_bid = False
+        self.trump_card = None
 
     def start(self):
         self.running = True
-        self.game = Game(self.connected_clients)
         threading.Thread(target=self.listen_for_clients, daemon=True).start()
 
     def listen_for_clients(self):
@@ -68,6 +71,36 @@ class Server:
                         response = f"{self.start_game}"
                         client_sock.sendall(response.encode('utf-8'))
 
+                elif msg == "bid?":
+                    with self.lock:
+                        if client_sock == self.current_player:
+                            client_sock.sendall("yes".encode('utf-8'))
+                        else:
+                            client_sock.sendall("no".encode('utf-8'))
+
+                elif msg == "hand-please":
+                    with self.lock:
+                        index = self.connected_clients.index(client_sock)
+                        bid = f"{self.client_hands[index]}"
+                        client_sock.sendall(bid.encode('utf-8'))
+
+                elif msg == "trump-card":
+                    with self.lock:
+                        response = f"{(self.trump_card.ID, self.trump_card.suit)}"
+                        client_sock.sendall(response.encode('utf-8'))
+
+                elif msg.startswith("Bid is: "):
+                    with self.lock:
+                        client_bid = int(msg[len("Bid is: "):])
+                        index = self.connected_clients.index(client_sock)
+                        self.player_bids[index] = client_bid
+
+                        all_players = [self] + self.connected_clients
+                        current_index = all_players.index(self.current_player)
+                        next_index = (current_index + 1) % len(all_players)
+                        self.current_player = all_players[next_index]
+                        self.check_bids()
+
             except:
                 break
 
@@ -91,3 +124,22 @@ class Server:
                 return self.connected_clients[index]
             else:
                 return None
+
+    def initialize_hands(self):
+        self.player_bids = [-1] * (len(self.connected_clients) + 1)
+        self.client_hands = [-1] * len(self.connected_clients)
+        self.all_bid = False
+
+    def setup_hands(self, deck):
+        with self.lock:
+            for index, client in enumerate(self.connected_clients):
+                if client in deck.hands:
+                    hand_data = [(card.ID, card.suit) for card in deck.hands[client]]
+                    self.client_hands[index] = hand_data
+
+    def check_bids(self):
+        for i in self.player_bids:
+            if self.player_bids[i] == -1:
+                self.all_bid = False
+        self.all_bid = True
+
