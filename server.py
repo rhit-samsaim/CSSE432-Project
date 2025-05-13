@@ -3,7 +3,7 @@ import threading
 
 
 class Server:
-    def __init__(self, max_clients=5, port=5413):
+    def __init__(self, max_clients=5, port=5411):
         self.max_clients = max_clients
         self.port = port
         self.connected_clients = []
@@ -92,13 +92,12 @@ class Server:
                 with self.lock:
                     client_bid = int(msg[len("Bid is: "):])
                     index = self.connected_clients.index(client_sock)
-                    self.player_bids[index] = client_bid
+                    self.player_bids[index + 1] = client_bid
 
                     all_players = [self] + self.connected_clients
                     current_index = all_players.index(self.current_player)
                     next_index = (current_index + 1) % len(all_players)
                     self.current_player = all_players[next_index]
-                    self.check_bids()
 
         # Clean up if client disconnects -> Thread sync = with
         with self.lock:
@@ -134,8 +133,9 @@ class Server:
                     self.client_hands[index] = hand_data
 
     def check_bids(self):
-        with self.lock:
-            if -1 in self.player_bids:
-                self.all_bid = False
-            else:
-                self.all_bid = True
+        if -1 in self.player_bids:
+            self.all_bid = False
+            return False
+        else:
+            self.all_bid = True
+            return True

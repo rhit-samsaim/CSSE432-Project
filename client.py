@@ -4,7 +4,7 @@ import socket
 class Client:
     def __init__(self, host):
         self.host = host
-        self.port = 5413
+        self.port = 5411
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.hand = []
 

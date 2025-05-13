@@ -12,17 +12,19 @@ width: Optional[int] = None
 height: Optional[int] = None
 size = None
 phase = "bidding"
+played_cards = []
 bid_input = ''
 
 
 def draw_server_screen(player_index, hand, trump_card):
-    global phase
+    global phase, played_cards
     screen.fill((0, 128, 0))
-    draw_hand(hand, trump_card)
+    draw_hand(hand, trump_card, 600)
+    draw_hand(played_cards, None, 50)
 
     if phase == "bidding" and player_index == 0:
         draw_bidding_phase()
-    else:
+    elif phase == "players_bidding":
         idle_message = font.render("Waiting For Players to Bid...", True, (0, 0, 0))
         screen.blit(idle_message, ((width / 2 - 300), (height / 4 - 100)))
 
@@ -32,19 +34,15 @@ def draw_server_screen(player_index, hand, trump_card):
 def draw_client_screen(client, hand, trump_card):
     global phase
     screen.fill((0, 128, 0))
-    draw_hand(hand, trump_card)
+    draw_hand(hand, trump_card, 600)
 
     if phase == "bidding":
         client.send("bid?")
         data = client.receive()
         if data == "yes":
             draw_bidding_phase()
-    else:
-        idle_message = font.render("Waiting For Players to Bid...", True, (0, 0, 0))
-        screen.blit(idle_message, ((width / 2 - 300), (height / 4 - 100)))
 
     pygame.display.flip()
-
 
 
 def draw_bidding_phase():
@@ -61,17 +59,23 @@ def draw_bidding_phase():
 
 
 def create_host_game(server):
-    global screen, font, width, height, size, phase, bid_input
+    global screen, font, width, height, size, phase, bid_input, played_cards
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
-    player_index = random.randint(0, len(server.connected_clients))
+    player_index = 0  # random.randint(0, len(server.connected_clients))
     deck = Deck([server, *server.connected_clients])
 
     server_hand = start_round(server, deck, player_index)
 
     while True:
-        if server.all_bid:  # Ends bidding phase
-            phase = "game"
-            # TODO: This is where we will actually start gameplay
+        print(server.current_player == server)
+        if phase == "players_bidding":
+            if server.check_bids():
+                phase = "game"
+
+        if phase == "game":
+            if server.current_player == server:  # Server's turn
+                card = choose_card(server_hand)
+                played_cards.append(card)
 
         check_server_inputs(server, player_index)
 
@@ -85,7 +89,7 @@ def create_client_game(client):
     trump_card = None
 
     while True:
-        print(phase)
+
         if not dealt_cards:
             client.send("hand-please")
             client.hand = ast.literal_eval(client.receive())  # Converts string to int safely
@@ -100,25 +104,6 @@ def create_client_game(client):
         draw_client_screen(client, client.hand, trump_card)
 
 
-def draw_hand(hand, trump_card):
-    spacing = 80
-
-    # Draw Trump Card
-    trump = Card(trump_card.ID, trump_card.suit)
-    trump_pic = pygame.image.load(trump.image)
-    trump_pic = pygame.transform.scale(trump_pic, (200, 400))
-    screen.blit(trump_pic, (width - 250, 50))
-
-    for i, (ID, suit) in enumerate(hand):
-        card = Card(ID, suit)
-        try:
-            card_pic = pygame.image.load(card.image)
-            card_pic = pygame.transform.scale(card_pic, (200, 400))
-            screen.blit(card_pic, (50 + i * spacing, 600))
-        except pygame.error as e:
-            print(f"Failed to load image for card ({ID}, {suit}): {e}")
-
-
 def start_round(server, deck, player_index):
     deck.deal()
     server.initialize_hands()
@@ -131,7 +116,6 @@ def start_round(server, deck, player_index):
         server.current_player = server.connected_clients[player_index - 1]
 
     server.trump_card = deck.trump_card
-    print(server.trump_card)
     server.setup_hands(deck)
 
     server.player_bids = [-1] * (len(server.connected_clients) + 1)
@@ -188,3 +172,48 @@ def check_client_inputs(client):
                 # Add this to handle regular typing input
                 if event.unicode.isprintable():
                     bid_input += event.unicode
+
+
+def choose_card(hand):
+    spacing = 80
+    card_width = 200
+    card_height = 400
+    card_y = 600
+    card_rects = []
+
+    for i in range(len(hand)):
+        card_x = 50 + i * spacing
+        rect = pygame.Rect(card_x, card_y, card_width, card_height)
+        card_rects.append(rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_x, mouse_y = event.pos
+                for i, rect in enumerate(card_rects):
+                    if rect.collidepoint(mouse_x, mouse_y):
+                        return hand[i]
+
+
+def draw_hand(hand, trump_card, y_pos):
+    spacing = 80
+
+    if trump_card is not None:
+        # Draw Trump Card
+        trump = Card(trump_card.ID, trump_card.suit)
+        trump_pic = pygame.image.load(trump.image)
+        trump_pic = pygame.transform.scale(trump_pic, (200, 400))
+        screen.blit(trump_pic, (width - 250, 50))
+
+    for i, (ID, suit) in enumerate(hand):
+        card = Card(ID, suit)
+        try:
+            card_pic = pygame.image.load(card.image)
+            card_pic = pygame.transform.scale(card_pic, (200, 400))
+            screen.blit(card_pic, (50 + i * spacing, y_pos))
+        except pygame.error as e:
+            print(f"Failed to load image for card ({ID}, {suit}): {e}")
