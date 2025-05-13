@@ -80,11 +80,13 @@ def create_host_game(server):
                 server.played_cards.append(card)
                 server_hand.remove(card)
                 taken_turn = True
+                if server.check_all_went():  # Round ended
+                    end_of_trick(server, deck, server_hand)
+                else:
+                    server.next_player()
 
             if server.check_all_went():  # Round ended
-                end_of_trick(server, deck)
-            else:
-                server.next_player()
+                end_of_trick(server, deck, server_hand)
 
         check_server_inputs(server, player_index)
         draw_server_screen(player_index, server_hand, server.trump_card, server.played_cards)
@@ -122,8 +124,8 @@ def create_client_game(client):
 
             client.send("my-turn?")
             response = client.receive()
+            draw_client_screen(client, client.hand, trump_card, client.played_cards)
             if response == "yes":
-                draw_client_screen(client, client.hand, trump_card, client.played_cards)
                 card = choose_card(client.hand, client.played_cards)
                 client.send(f"new-played {card}")
                 client.hand.remove(card)
@@ -277,7 +279,7 @@ def is_valid_play(card_to_play, hand, played_cards):
         return True
 
 
-def end_of_trick(server, deck):
+def end_of_trick(server, deck, server_hand):
     global phase, taken_turn
 
     taken_turn = False
@@ -297,16 +299,15 @@ def end_of_trick(server, deck):
 
     # Update current player and clear played cards
     server.current_player = winner
-    server.played_cards = []
 
     # Check if all players have played all their cards (trick phase over)
-    if all(len(deck.hands[i]) == 0 for i in players):
-        calculate_scores(server, players)
+    if len(server_hand) == 0 and all(len(hand) == 0 for hand in server.client_hands):
+        # calculate_scores(server, players)  # TODO: DO LATER
         phase = "bidding"
         deck.deal()
         server.initialize_hands()
         server.trump_card = deck.trump_card
-        server.setup_hands()
+        server.setup_hands(deck)
 
 
 def get_round_winner(played_cards, trump_suit):

@@ -108,10 +108,9 @@ class Server:
                     card_str = msg[len("new-played "):].strip()
                     card = ast.literal_eval(card_str)
                     self.played_cards.append(card)
-                    if not self.check_all_went():
-                        self.next_player()
-                    else:
-                        None  # TODO: END ROUND -> TEST WHO WON
+                    client_index = self.connected_clients.index(self.current_player)
+                    self.client_hands[client_index].remove(card)
+                    self.next_player()
 
             elif msg.startswith("Bid is: "):
                 with self.lock:
@@ -145,6 +144,7 @@ class Server:
         self.player_bids = [-1] * (len(self.connected_clients) + 1)
         self.client_hands = [-1] * len(self.connected_clients)
         self.tricks_taken = [0] * (len(self.connected_clients) + 1)
+        self.played_cards = []
 
     def setup_hands(self, deck):
         with self.lock:
