@@ -1,5 +1,4 @@
 import ast
-import random
 import sys
 import pygame
 from typing import Optional
@@ -67,7 +66,6 @@ def create_host_game(server):
     server_hand = start_round(server, deck, player_index)
 
     while True:
-        print(server.current_player == server)
         if phase == "players_bidding":
             if server.check_bids():
                 phase = "game"
@@ -76,6 +74,7 @@ def create_host_game(server):
             if server.current_player == server:  # Server's turn
                 card = choose_card(server_hand)
                 played_cards.append(card)
+                server_hand.remove(card)
 
         check_server_inputs(server, player_index)
 
@@ -192,11 +191,16 @@ def choose_card(hand):
                 pygame.quit()
                 sys.exit()
 
+
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_x, mouse_y = event.pos
                 for i, rect in enumerate(card_rects):
                     if rect.collidepoint(mouse_x, mouse_y):
-                        return hand[i]
+                        selected_card = hand[i]
+                        if is_valid_play(selected_card, hand, played_cards):
+                            return selected_card
+                        else:
+                            print("Invalid play: You must follow suit!")
 
 
 def draw_hand(hand, trump_card, y_pos):
@@ -217,3 +221,30 @@ def draw_hand(hand, trump_card, y_pos):
             screen.blit(card_pic, (50 + i * spacing, y_pos))
         except pygame.error as e:
             print(f"Failed to load image for card ({ID}, {suit}): {e}")
+
+
+def is_valid_play(card_to_play, hand, played_cards):
+    card_id, suit_to_play = card_to_play
+
+    # Wizards and Jesters can always be played
+    if card_id == 0 or card_id == 14:
+        return True
+
+    # No cards played yet -> any card is valid
+    if not played_cards:
+        return True
+
+    # Get the suit of the first played card
+    _, lead_suit = played_cards[0]
+
+    # Check if the player has any cards of the lead suit (excluding jesters/wizards)
+    # Looked up best way to do this AS FYI
+    has_lead_suit = any(c_id not in (0, 14) and s == lead_suit for c_id, s in hand)
+
+    if has_lead_suit:
+        # If the player has a card of the lead suit
+        return suit_to_play == lead_suit
+    else:
+        # If the player doesn't have the lead suit
+        return True
+
