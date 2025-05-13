@@ -44,71 +44,67 @@ class Server:
 
     def handle_client(self, client_sock):
         while self.running:
-            try:
-                msg = client_sock.recv(1024).decode('utf-8').strip()
-                if not msg:
-                    break
+            msg = client_sock.recv(1024).decode('utf-8').strip()
+            if not msg:
+                break
 
-                if msg == "status":
-                    with self.lock:
-                        response = f"{len(self.connected_clients)},{self.max_clients},{self.ready_statuses}"
+            if msg == "status":
+                with self.lock:
+                    response = f"{len(self.connected_clients)},{self.max_clients},{self.ready_statuses}"
+                client_sock.sendall(response.encode('utf-8'))
+
+            elif msg == "ready":
+                with self.lock:
+                    index = self.connected_clients.index(client_sock)
+                    self.ready_statuses[index + 1] = True  # Mark client ready
+                    print(f"Client {index + 1} is ready")
+                    print(self.ready_statuses)
+
+            elif msg == "request_ready_states":
+                with self.lock:
+                    ready_states_str = ','.join(map(str, self.ready_statuses))
+                    client_sock.sendall(f"update_ready_states:{ready_states_str}".encode('utf-8'))
+
+            elif msg == "start_game?":
+                with self.lock:
+                    response = f"{self.start_game}"
                     client_sock.sendall(response.encode('utf-8'))
 
-                elif msg == "ready":
-                    with self.lock:
-                        index = self.connected_clients.index(client_sock)
-                        self.ready_statuses[index + 1] = True  # Mark client ready
-                        print(f"Client {index + 1} is ready")
-                        print(self.ready_statuses)
+            elif msg == "bid?":
+                with self.lock:
+                    if client_sock == self.current_player:
+                        client_sock.sendall("yes".encode('utf-8'))
+                    else:
+                        client_sock.sendall("no".encode('utf-8'))
 
-                elif msg == "request_ready_states":
-                    with self.lock:
-                        ready_states_str = ','.join(map(str, self.ready_statuses))
-                        client_sock.sendall(f"update_ready_states:{ready_states_str}".encode('utf-8'))
+            elif msg == "hand-please":
+                with self.lock:
+                    index = self.connected_clients.index(client_sock)
+                    bid = f"{self.client_hands[index]}"
+                    client_sock.sendall(bid.encode('utf-8'))
 
-                elif msg == "start_game?":
-                    with self.lock:
-                        response = f"{self.start_game}"
-                        client_sock.sendall(response.encode('utf-8'))
+            elif msg == "trump-card":
+                with self.lock:
+                    response = f"{(self.trump_card.ID, self.trump_card.suit)}"
+                    client_sock.sendall(response.encode('utf-8'))
 
-                elif msg == "bid?":
-                    with self.lock:
-                        if client_sock == self.current_player:
-                            client_sock.sendall("yes".encode('utf-8'))
-                        else:
-                            client_sock.sendall("no".encode('utf-8'))
+            elif msg.startswith("Bid is: "):
+                with self.lock:
+                    client_bid = int(msg[len("Bid is: "):])
+                    index = self.connected_clients.index(client_sock)
+                    self.player_bids[index] = client_bid
 
-                elif msg == "hand-please":
-                    with self.lock:
-                        index = self.connected_clients.index(client_sock)
-                        bid = f"{self.client_hands[index]}"
-                        client_sock.sendall(bid.encode('utf-8'))
-
-                elif msg == "trump-card":
-                    with self.lock:
-                        response = f"{(self.trump_card.ID, self.trump_card.suit)}"
-                        client_sock.sendall(response.encode('utf-8'))
-
-                elif msg.startswith("Bid is: "):
-                    with self.lock:
-                        client_bid = int(msg[len("Bid is: "):])
-                        index = self.connected_clients.index(client_sock)
-                        self.player_bids[index] = client_bid
-
-                        all_players = [self] + self.connected_clients
-                        current_index = all_players.index(self.current_player)
-                        next_index = (current_index + 1) % len(all_players)
-                        self.current_player = all_players[next_index]
-                        self.check_bids()
-
-            except:
-                break
+                    all_players = [self] + self.connected_clients
+                    current_index = all_players.index(self.current_player)
+                    next_index = (current_index + 1) % len(all_players)
+                    self.current_player = all_players[next_index]
+                    self.check_bids()
 
         # Clean up if client disconnects -> Thread sync = with
         with self.lock:
             index = self.connected_clients.index(client_sock)
             self.connected_clients.pop(index)
-            self.ready_statuses.pop(index)  # Remove corresponding readiness status
+            self.ready_statuses.pop(index + 1)  # Remove corresponding readiness status
         client_sock.close()
 
     def send_ready_states(self):
@@ -138,8 +134,8 @@ class Server:
                     self.client_hands[index] = hand_data
 
     def check_bids(self):
-        for i in self.player_bids:
-            if self.player_bids[i] == -1:
+        with self.lock:
+            if -1 in self.player_bids:
                 self.all_bid = False
-        self.all_bid = True
-
+            else:
+                self.all_bid = True

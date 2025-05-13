@@ -1,4 +1,5 @@
 import ast
+import random
 import sys
 import pygame
 from typing import Optional
@@ -10,16 +11,16 @@ font: Optional[pygame.font.Font] = None
 width: Optional[int] = None
 height: Optional[int] = None
 size = None
-bidding_phase = True
+phase = "bidding"
 bid_input = ''
 
 
 def draw_server_screen(player_index, hand, trump_card):
-    global bidding_phase
+    global phase
     screen.fill((0, 128, 0))
     draw_hand(hand, trump_card)
 
-    if bidding_phase and player_index == 0:
+    if phase == "bidding" and player_index == 0:
         draw_bidding_phase()
     else:
         idle_message = font.render("Waiting For Players to Bid...", True, (0, 0, 0))
@@ -29,20 +30,21 @@ def draw_server_screen(player_index, hand, trump_card):
 
 
 def draw_client_screen(client, hand, trump_card):
-    global bidding_phase
+    global phase
     screen.fill((0, 128, 0))
     draw_hand(hand, trump_card)
 
-    client.send("bid?")
-    data = client.receive()
-    if data == "yes":
-        bidding_phase = True
-        draw_bidding_phase()
+    if phase == "bidding":
+        client.send("bid?")
+        data = client.receive()
+        if data == "yes":
+            draw_bidding_phase()
     else:
         idle_message = font.render("Waiting For Players to Bid...", True, (0, 0, 0))
         screen.blit(idle_message, ((width / 2 - 300), (height / 4 - 100)))
 
     pygame.display.flip()
+
 
 
 def draw_bidding_phase():
@@ -59,66 +61,31 @@ def draw_bidding_phase():
 
 
 def create_host_game(server):
-    global screen, font, width, height, size, bidding_phase, bid_input
+    global screen, font, width, height, size, phase, bid_input
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
-
-    server.initialize_hands()
-    player_index = 0 #random.randint(0, len(server.connected_clients))
+    player_index = random.randint(0, len(server.connected_clients))
     deck = Deck([server, *server.connected_clients])
 
-    deck.deal()
-    server_hand = [(card.ID, card.suit) for card in deck.hands[server]]
-    if player_index == 0:
-        server.current_player = server
-    else:
-        server.current_player = server.connected_clients[player_index - 1]
-
-    server.trump_card = deck.trump_card
-    print(server.trump_card)
-    server.setup_hands(deck)
-
-    server.player_bids = [-1] * (len(server.connected_clients) + 1)
+    server_hand = start_round(server, deck, player_index)
 
     while True:
         if server.all_bid:  # Ends bidding phase
-            print("TODO")
+            phase = "game"
             # TODO: This is where we will actually start gameplay
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif bidding_phase and event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    if bid_input.strip() != '':
-                        server.player_bids[player_index] = bid_input
-                        bid_input = ''
-                        if player_index + 1 == len(server.player_bids):
-                            player_index = 0
-                        else:
-                            player_index += 1
-
-                        if player_index == 0:
-                            server.current_player = server
-                        else:
-                            server.current_player = server.connected_clients[player_index - 1]
-
-                elif event.key == pygame.K_BACKSPACE:
-                    bid_input = bid_input[:-1]
-                else:
-                    if event.unicode.isprintable():
-                        bid_input += event.unicode
+        check_server_inputs(server, player_index)
 
         draw_server_screen(player_index, server_hand, server.trump_card)
 
 
 def create_client_game(client):
-    global screen, font, width, height, size, bid_input, bidding_phase
+    global screen, font, width, height, size, bid_input, phase
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
-    dealt_cards, bidding_phase = False, False
+    dealt_cards = False
     trump_card = None
 
     while True:
+        print(phase)
         if not dealt_cards:
             client.send("hand-please")
             client.hand = ast.literal_eval(client.receive())  # Converts string to int safely
@@ -128,23 +95,7 @@ def create_client_game(client):
             trump_card = Card(trump_data[0], trump_data[1])
             dealt_cards = True
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif bidding_phase and event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    if bid_input.strip() != '':
-                        client.send(f"Bid is: {bid_input}")
-                        bid_input = ''
-                        bidding_phase = False
-                elif event.key == pygame.K_BACKSPACE:
-                    bid_input = bid_input[:-1]
-
-                else:
-                    # Add this to handle regular typing input
-                    if event.unicode.isprintable():
-                        bid_input += event.unicode
+        check_client_inputs(client)
 
         draw_client_screen(client, client.hand, trump_card)
 
@@ -166,3 +117,74 @@ def draw_hand(hand, trump_card):
             screen.blit(card_pic, (50 + i * spacing, 600))
         except pygame.error as e:
             print(f"Failed to load image for card ({ID}, {suit}): {e}")
+
+
+def start_round(server, deck, player_index):
+    deck.deal()
+    server.initialize_hands()
+
+    server_hand = [(card.ID, card.suit) for card in deck.hands[server]]
+
+    if player_index == 0:
+        server.current_player = server
+    else:
+        server.current_player = server.connected_clients[player_index - 1]
+
+    server.trump_card = deck.trump_card
+    print(server.trump_card)
+    server.setup_hands(deck)
+
+    server.player_bids = [-1] * (len(server.connected_clients) + 1)
+
+    return server_hand
+
+
+def check_server_inputs(server, player_index):
+
+    global bid_input, phase
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif phase == "bidding" and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                if bid_input.strip() != '':
+                    server.player_bids[player_index] = bid_input
+                    bid_input = ''
+                    if player_index + 1 == len(server.player_bids):
+                        player_index = 0
+                    else:
+                        player_index += 1
+
+                    if player_index == 0:
+                        server.current_player = server
+                    else:
+                        server.current_player = server.connected_clients[player_index - 1]
+                    phase = "players_bidding"
+
+            elif event.key == pygame.K_BACKSPACE:
+                bid_input = bid_input[:-1]
+            else:
+                if event.unicode.isprintable():
+                    bid_input += event.unicode
+
+
+def check_client_inputs(client):
+    global phase, bid_input
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif phase == "bidding" and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                if bid_input.strip() != '':
+                    client.send(f"Bid is: {bid_input}")
+                    bid_input = ''
+                    phase = "game"
+            elif event.key == pygame.K_BACKSPACE:
+                bid_input = bid_input[:-1]
+
+            else:
+                # Add this to handle regular typing input
+                if event.unicode.isprintable():
+                    bid_input += event.unicode
