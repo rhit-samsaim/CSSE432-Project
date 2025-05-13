@@ -1,4 +1,5 @@
 import ast
+import random
 import sys
 import pygame
 from typing import Optional
@@ -15,13 +16,13 @@ taken_turn = False
 bid_input = ''
 
 
-def draw_server_screen(player_index, hand, trump_card, played_cards):
+def draw_server_screen(server, hand, trump_card, played_cards):
     global phase
     screen.fill((0, 128, 0))
     draw_hand(hand, trump_card, 600)
     draw_hand(played_cards, None, 50)
 
-    if phase == "bidding" and player_index == 0:
+    if phase == "bidding" and server.current_player == server:
         draw_bidding_phase()
     elif phase == "players_bidding":
         idle_message = font.render("Waiting For Players to Bid...", True, (0, 0, 0))
@@ -62,10 +63,10 @@ def draw_bidding_phase():
 def create_host_game(server):
     global screen, font, width, height, size, phase, bid_input, taken_turn
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
-    player_index = 0  # random.randint(0, len(server.connected_clients))
+    server.current_player = server
     deck = Deck([server, *server.connected_clients])
 
-    server_hand = start_round(server, deck, player_index)
+    server_hand = start_round(server, deck)
 
     while True:
         if phase == "players_bidding":
@@ -74,38 +75,41 @@ def create_host_game(server):
 
         if phase == "game":
             if server.current_player == server and not taken_turn:  # Server's turn
-                draw_server_screen(player_index, server_hand, server.trump_card, server.played_cards)
+                draw_server_screen(server, server_hand, server.trump_card, server.played_cards)
                 card = choose_card(server_hand, server.played_cards)
                 server.played_cards.append(card)
+                server.play_order.append(server.current_player)
                 server_hand.remove(card)
                 taken_turn = True
                 if server.check_all_went():  # Round ended
-                    end_of_trick(server, deck, server_hand, player_index)
+                    end_of_trick(server, deck, server_hand)
                 else:
                     server.next_player()
 
             if server.check_all_went():  # Round ended
-                end_of_trick(server, deck, server_hand, player_index)
+                end_of_trick(server, deck, server_hand)
 
-        check_server_inputs(server, player_index)
-        draw_server_screen(player_index, server_hand, server.trump_card, server.played_cards)
+        check_server_inputs(server)
+        draw_server_screen(server, server_hand, server.trump_card, server.played_cards)
 
 
 def create_client_game(client):
     global screen, font, width, height, size, bid_input, phase
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
-    dealt_cards = False
     trump_card = None
 
     while True:
-        if not dealt_cards:
+        client.send("new-round?")
+        response = client.receive()
+        if response == "yes":
+            phase = "bidding"
             client.send("hand-please")
             client.hand = ast.literal_eval(client.receive())
+            client.played_cards = []
 
             client.send("trump-card")
             trump_data = ast.literal_eval(client.receive())
             trump_card = Card(trump_data[0], trump_data[1])
-            dealt_cards = True
 
         check_client_inputs(client)
 
@@ -121,26 +125,20 @@ def create_client_game(client):
         draw_client_screen(client, client.hand, trump_card, client.played_cards)
 
 
-def start_round(server, deck, player_index):
+def start_round(server, deck):
+    server.next_player()
     deck.deal()
     server.initialize_hands()
 
     server_hand = [(card.ID, card.suit) for card in deck.hands[server]]
 
-    if player_index == 0:
-        server.current_player = server
-    else:
-        server.current_player = server.connected_clients[player_index - 1]
-
     server.trump_card = deck.trump_card
     server.setup_hands(deck)
-
-    server.player_bids = [-1] * (len(server.connected_clients) + 1)
 
     return server_hand
 
 
-def check_server_inputs(server, player_index):
+def check_server_inputs(server):
     global bid_input, phase
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -149,17 +147,8 @@ def check_server_inputs(server, player_index):
         elif phase == "bidding" and event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 if bid_input.strip() != '':
-                    server.player_bids[player_index] = bid_input
+                    server.player_bids[0] = bid_input
                     bid_input = ''
-                    if player_index + 1 == len(server.player_bids):
-                        player_index = 0
-                    else:
-                        player_index += 1
-
-                    if player_index == 0:
-                        server.current_player = server
-                    else:
-                        server.current_player = server.connected_clients[player_index - 1]
                     phase = "players_bidding"
 
             elif event.key == pygame.K_BACKSPACE:
@@ -267,7 +256,7 @@ def is_valid_play(card_to_play, hand, played_cards):
         return True
 
 
-def end_of_trick(server, deck, server_hand, player_index):
+def end_of_trick(server, deck, server_hand):
     global phase, taken_turn
 
     taken_turn = False
@@ -276,24 +265,25 @@ def end_of_trick(server, deck, server_hand, player_index):
     winner_index = get_round_winner(server.played_cards, server.trump_card.suit)
 
     # Determine players and the actual turn order of the trick
-    players = [server] + server.connected_clients
-    start_index = players.index(server.current_player)
-    turn_order = players[start_index:] + players[:start_index]  # A way to order the players to fit what the order was
-    winner = turn_order[winner_index]
+    winner = server.play_order[winner_index]
 
     # Increment tricks taken using the index in original player order
-    winner_index_in_players = players.index(winner)
-    server.tricks_taken[winner_index_in_players] += 1
+    if winner in server.connected_clients:
+        client_index = server.connected_clients.index(winner)
+        server.tricks_taken[client_index + 1] += 1
+    else:
+        server.tricks_taken[0] += 1
 
     # Update current player and clear played cards
     server.current_player = winner
+    server.played_cards = []  # TODO: CHANGE THIS
+    server.play_order = []
 
     # Check if all players have played all their cards (trick phase over)
     if len(server_hand) == 0 and all(len(hand) == 0 for hand in server.client_hands):
         # calculate_scores(server, players)  # TODO: DO LATER
         phase = "bidding"
-        server_hand[:] = start_round(server, deck, player_index)
-
+        server_hand[:] = start_round(server, deck)
 
 
 def get_round_winner(played_cards, trump_suit):
@@ -328,15 +318,6 @@ def get_round_winner(played_cards, trump_suit):
     return best_index
 
 
-def calculate_scores(server, players):  # TODO: THESE SCORES DO NOT WORK THIS IS JSUT FOR FUTURE REFERENCE
-    for i, player in enumerate(players):
-        bid = int(server.player_bids[i])
-        tricks_taken = player.tricks_taken
-        if tricks_taken == bid:
-            player.score += 20 + 10 * bid
-        else:
-            player.score += -10 * abs(tricks_taken - bid)
+def calculate_scores(server, players):
+    return None
 
-    server.player_bids = [-1] * len(players)
-    for p in players:
-        p.tricks_taken = 0

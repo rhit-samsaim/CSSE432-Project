@@ -19,7 +19,10 @@ class Server:
         self.all_bid = False
         self.trump_card = None
         self.played_cards = []
+        self.play_order = []
         self.tricks_taken = []
+        self.signal_new_round = False
+        self.round_starter = self
 
     def start(self):
         self.running = True
@@ -80,6 +83,13 @@ class Server:
                     else:
                         client_sock.sendall("no".encode('utf-8'))
 
+            elif msg == "new-round?":
+                with self.lock:
+                    if self.signal_new_round:
+                        client_sock.sendall("yes".encode('utf-8'))
+                    else:
+                        client_sock.sendall("no".encode('utf-8'))
+
             elif msg == "hand-please":
                 with self.lock:
                     index = self.connected_clients.index(client_sock)
@@ -108,6 +118,7 @@ class Server:
                     card_str = msg[len("new-played "):].strip()
                     card = ast.literal_eval(card_str)
                     self.played_cards.append(card)
+                    self.play_order.append(client_sock)
                     client_index = self.connected_clients.index(self.current_player)
                     self.client_hands[client_index].remove(card)
                     self.next_player()
@@ -118,6 +129,7 @@ class Server:
                     index = self.connected_clients.index(client_sock)
                     self.player_bids[index + 1] = client_bid
                     self.next_player()
+                    self.signal_new_round = False
 
         # Clean up if client disconnects -> Thread sync = with
         with self.lock:
@@ -145,6 +157,12 @@ class Server:
         self.client_hands = [-1] * len(self.connected_clients)
         self.tricks_taken = [0] * (len(self.connected_clients) + 1)
         self.played_cards = []
+        self.play_order = []
+        self.signal_new_round = True
+        all_players = [self] + self.connected_clients
+        current_index = all_players.index(self.round_starter)
+        next_index = (current_index + 1) % len(all_players)
+        self.round_starter = all_players[next_index]
 
     def setup_hands(self, deck):
         with self.lock:
@@ -159,6 +177,7 @@ class Server:
             return False
         else:
             self.all_bid = True
+            self.current_player = self.round_starter
             return True
 
     def next_player(self):
