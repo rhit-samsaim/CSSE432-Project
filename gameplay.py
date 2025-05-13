@@ -67,18 +67,23 @@ def create_host_game(server):
     server_hand = start_round(server, deck, player_index)
 
     while True:
+
         if phase == "players_bidding":
             if server.check_bids():
                 phase = "game"
 
         if phase == "game":
             if server.current_player == server:  # Server's turn
+                draw_server_screen(player_index, server_hand, server.trump_card, server.played_cards)
                 card = choose_card(server_hand, server.played_cards)
                 server.played_cards.append(card)
                 server_hand.remove(card)
+                if not server.check_all_went():
+                    server.next_player()
+                else:
+                    None  # TODO: END ROUND -> TEST WHO WON
 
         check_server_inputs(server, player_index)
-
         draw_server_screen(player_index, server_hand, server.trump_card, server.played_cards)
 
 
@@ -89,7 +94,6 @@ def create_client_game(client):
     trump_card = None
 
     while True:
-
         if not dealt_cards:
             client.send("hand-please")
             client.hand = ast.literal_eval(client.receive())
@@ -104,12 +108,11 @@ def create_client_game(client):
         if phase == "game":
             client.send("played-cards")
             client.played_cards = ast.literal_eval(client.receive())
-
             client.send("my-turn?")
             response = client.receive()
             if response == "yes":
+                draw_client_screen(client, client.hand, trump_card, client.played_cards)
                 card = choose_card(client.hand, client.played_cards)
-                client.played_cards.append(card)
                 client.send(f"new-played {card}")
                 client.hand.remove(card)
 
@@ -220,6 +223,8 @@ def draw_hand(hand, trump_card, y_pos):
 
     if trump_card is not None:
         # Draw Trump Card
+        trump_caption = font.render("Trump:", True, (0, 0, 0))
+        screen.blit(trump_caption, (width - 240, 0))
         trump = Card(trump_card.ID, trump_card.suit)
         trump_pic = pygame.image.load(trump.image)
         trump_pic = pygame.transform.scale(trump_pic, (200, 400))

@@ -95,22 +95,22 @@ class Server:
                     response = f"{self.played_cards}"
                     client_sock.sendall(response.encode('utf-8'))
 
-            elif msg.startswith("new-played"):
+            elif msg.startswith("new-played "):
                 with self.lock:
                     card_str = msg[len("new-played "):].strip()
                     card = ast.literal_eval(card_str)
                     self.played_cards.append(card)
+                    if not self.check_all_went():
+                        self.next_player()
+                    else:
+                        None  # TODO: END ROUND -> TEST WHO WON
 
             elif msg.startswith("Bid is: "):
                 with self.lock:
                     client_bid = int(msg[len("Bid is: "):])
                     index = self.connected_clients.index(client_sock)
                     self.player_bids[index + 1] = client_bid
-
-                    all_players = [self] + self.connected_clients
-                    current_index = all_players.index(self.current_player)
-                    next_index = (current_index + 1) % len(all_players)
-                    self.current_player = all_players[next_index]
+                    self.next_player()
 
         # Clean up if client disconnects -> Thread sync = with
         with self.lock:
@@ -152,3 +152,12 @@ class Server:
         else:
             self.all_bid = True
             return True
+
+    def next_player(self):
+        all_players = [self] + self.connected_clients
+        current_index = all_players.index(self.current_player)
+        next_index = (current_index + 1) % len(all_players)
+        self.current_player = all_players[next_index]
+
+    def check_all_went(self):
+        return len(self.played_cards) == len([self] + self.connected_clients)
