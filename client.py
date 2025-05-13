@@ -8,6 +8,8 @@ class Client:
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.hand = []
         self.played_cards = []
+        self.tricks_taken = []
+        self.my_tricks = 0
 
     def connect(self):
         try:

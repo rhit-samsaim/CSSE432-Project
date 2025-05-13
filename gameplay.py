@@ -11,6 +11,7 @@ width: Optional[int] = None
 height: Optional[int] = None
 size = None
 phase = "bidding"
+taken_turn = False
 bid_input = ''
 
 
@@ -59,7 +60,7 @@ def draw_bidding_phase():
 
 
 def create_host_game(server):
-    global screen, font, width, height, size, phase, bid_input
+    global screen, font, width, height, size, phase, bid_input, taken_turn
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
     player_index = 0  # random.randint(0, len(server.connected_clients))
     deck = Deck([server, *server.connected_clients])
@@ -73,15 +74,17 @@ def create_host_game(server):
                 phase = "game"
 
         if phase == "game":
-            if server.current_player == server:  # Server's turn
+            if server.current_player == server and not taken_turn:  # Server's turn
                 draw_server_screen(player_index, server_hand, server.trump_card, server.played_cards)
                 card = choose_card(server_hand, server.played_cards)
                 server.played_cards.append(card)
                 server_hand.remove(card)
-                if not server.check_all_went():
-                    server.next_player()
-                else:
-                    None  # TODO: END ROUND -> TEST WHO WON
+                taken_turn = True
+
+            if server.check_all_went():  # Round ended
+                end_of_trick(server, deck)
+            else:
+                server.next_player()
 
         check_server_inputs(server, player_index)
         draw_server_screen(player_index, server_hand, server.trump_card, server.played_cards)
@@ -108,6 +111,15 @@ def create_client_game(client):
         if phase == "game":
             client.send("played-cards")
             client.played_cards = ast.literal_eval(client.receive())
+
+            client.send("tricks-taken")
+            data = client.receive()
+            all_part, you_part = data.split(";")
+            all_part = all_part.strip()
+            you_part = you_part.strip()
+            client.tricks_taken = ast.literal_eval(all_part[len("all:"):])
+            client.my_tricks = int(you_part[len("you:"):])
+
             client.send("my-turn?")
             response = client.receive()
             if response == "yes":
@@ -139,7 +151,6 @@ def start_round(server, deck, player_index):
 
 
 def check_server_inputs(server, player_index):
-
     global bid_input, phase
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -265,3 +276,80 @@ def is_valid_play(card_to_play, hand, played_cards):
         # If the player doesn't have the lead suit
         return True
 
+
+def end_of_trick(server, deck):
+    global phase, taken_turn
+
+    taken_turn = False
+
+    # Get winner index from the played cards
+    winner_index = get_round_winner(server.played_cards, server.trump_card.suit)
+
+    # Determine players and the actual turn order of the trick
+    players = [server] + server.connected_clients
+    start_index = players.index(server.current_player)
+    turn_order = players[start_index:] + players[:start_index]  # A way to order the players to fit what the order was
+    winner = turn_order[winner_index]
+
+    # Increment tricks taken using the index in original player order
+    winner_index_in_players = players.index(winner)
+    server.tricks_taken[winner_index_in_players] += 1
+
+    # Update current player and clear played cards
+    server.current_player = winner
+    server.played_cards = []
+
+    # Check if all players have played all their cards (trick phase over)
+    if all(len(deck.hands[i]) == 0 for i in players):
+        calculate_scores(server, players)
+        phase = "bidding"
+        deck.deal()
+        server.initialize_hands()
+        server.trump_card = deck.trump_card
+        server.setup_hands()
+
+
+def get_round_winner(played_cards, trump_suit):
+    WIZARD = 14
+    JESTER = 0
+    best_index = -1
+    best_card = None
+    lead_suit = None
+
+    for index, (card_id, suit) in enumerate(played_cards):
+        # First non-jester card sets the lead suit (unless it's a wizard)
+        if lead_suit is None and card_id not in (JESTER, WIZARD):
+            lead_suit = suit
+
+        if card_id == WIZARD:
+            return index  # First wizard wins
+
+        if best_card is None:
+            best_card = (card_id, suit)
+            best_index = index
+        else:
+            _, best_suit = best_card
+
+            # Trump suit beats lead suit
+            if suit == trump_suit and best_suit != trump_suit:
+                best_card = (card_id, suit)
+                best_index = index
+            elif suit == best_suit and card_id > best_card[0]:
+                best_card = (card_id, suit)
+                best_index = index
+
+    return best_index
+
+
+def calculate_scores(server, players):  # TODO: THESE SCORES DO NOT WORK THIS IS JSUT FOR FUTURE REFERENCE
+    for i, player in enumerate(players):
+        bid = int(server.player_bids[i])
+        tricks_taken = player.tricks_taken
+        if tricks_taken == bid:
+            player.score += 20 + 10 * bid
+        else:
+            player.score += -10 * abs(tricks_taken - bid)
+
+    server.player_bids = [-1] * len(players)
+    for p in players:
+        p.tricks_taken = 0

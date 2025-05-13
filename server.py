@@ -19,6 +19,7 @@ class Server:
         self.all_bid = False
         self.trump_card = None
         self.played_cards = []
+        self.tricks_taken = []
 
     def start(self):
         self.running = True
@@ -95,6 +96,13 @@ class Server:
                     response = f"{self.played_cards}"
                     client_sock.sendall(response.encode('utf-8'))
 
+            elif msg == "tricks-taken":
+                with self.lock:
+                    index = self.connected_clients.index(client_sock)
+                    personal_tricks = self.tricks_taken[index + 1]
+                    message = f"all:{self.tricks_taken}; you:{personal_tricks}"
+                    client_sock.sendall(message.encode('utf-8'))
+
             elif msg.startswith("new-played "):
                 with self.lock:
                     card_str = msg[len("new-played "):].strip()
@@ -136,7 +144,7 @@ class Server:
     def initialize_hands(self):
         self.player_bids = [-1] * (len(self.connected_clients) + 1)
         self.client_hands = [-1] * len(self.connected_clients)
-        self.all_bid = False
+        self.tricks_taken = [0] * (len(self.connected_clients) + 1)
 
     def setup_hands(self, deck):
         with self.lock:
