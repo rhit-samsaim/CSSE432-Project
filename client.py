@@ -7,6 +7,7 @@ class Client:
         self.port = 5411
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.hand = []
+        self.played_cards = []
 
     def connect(self):
         try:

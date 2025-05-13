@@ -11,12 +11,11 @@ width: Optional[int] = None
 height: Optional[int] = None
 size = None
 phase = "bidding"
-played_cards = []
 bid_input = ''
 
 
-def draw_server_screen(player_index, hand, trump_card):
-    global phase, played_cards
+def draw_server_screen(player_index, hand, trump_card, played_cards):
+    global phase
     screen.fill((0, 128, 0))
     draw_hand(hand, trump_card, 600)
     draw_hand(played_cards, None, 50)
@@ -30,10 +29,12 @@ def draw_server_screen(player_index, hand, trump_card):
     pygame.display.flip()
 
 
-def draw_client_screen(client, hand, trump_card):
+def draw_client_screen(client, hand, trump_card, played_cards):
     global phase
     screen.fill((0, 128, 0))
     draw_hand(hand, trump_card, 600)
+    if played_cards is not []:
+        draw_hand(played_cards, None, 50)
 
     if phase == "bidding":
         client.send("bid?")
@@ -58,7 +59,7 @@ def draw_bidding_phase():
 
 
 def create_host_game(server):
-    global screen, font, width, height, size, phase, bid_input, played_cards
+    global screen, font, width, height, size, phase, bid_input
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
     player_index = 0  # random.randint(0, len(server.connected_clients))
     deck = Deck([server, *server.connected_clients])
@@ -72,13 +73,13 @@ def create_host_game(server):
 
         if phase == "game":
             if server.current_player == server:  # Server's turn
-                card = choose_card(server_hand)
-                played_cards.append(card)
+                card = choose_card(server_hand, server.played_cards)
+                server.played_cards.append(card)
                 server_hand.remove(card)
 
         check_server_inputs(server, player_index)
 
-        draw_server_screen(player_index, server_hand, server.trump_card)
+        draw_server_screen(player_index, server_hand, server.trump_card, server.played_cards)
 
 
 def create_client_game(client):
@@ -91,7 +92,7 @@ def create_client_game(client):
 
         if not dealt_cards:
             client.send("hand-please")
-            client.hand = ast.literal_eval(client.receive())  # Converts string to int safely
+            client.hand = ast.literal_eval(client.receive())
 
             client.send("trump-card")
             trump_data = ast.literal_eval(client.receive())
@@ -100,7 +101,19 @@ def create_client_game(client):
 
         check_client_inputs(client)
 
-        draw_client_screen(client, client.hand, trump_card)
+        if phase == "game":
+            client.send("played-cards")
+            client.played_cards = ast.literal_eval(client.receive())
+
+            client.send("my-turn?")
+            response = client.receive()
+            if response == "yes":
+                card = choose_card(client.hand, client.played_cards)
+                client.played_cards.append(card)
+                client.send(f"new-played {card}")
+                client.hand.remove(card)
+
+        draw_client_screen(client, client.hand, trump_card, client.played_cards)
 
 
 def start_round(server, deck, player_index):
@@ -173,7 +186,7 @@ def check_client_inputs(client):
                     bid_input += event.unicode
 
 
-def choose_card(hand):
+def choose_card(hand, played_cards):
     spacing = 80
     card_width = 200
     card_height = 400
@@ -190,7 +203,6 @@ def choose_card(hand):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_x, mouse_y = event.pos

@@ -1,3 +1,4 @@
+import ast
 import socket
 import threading
 
@@ -17,6 +18,7 @@ class Server:
         self.client_hands = []
         self.all_bid = False
         self.trump_card = None
+        self.played_cards = []
 
     def start(self):
         self.running = True
@@ -70,7 +72,7 @@ class Server:
                     response = f"{self.start_game}"
                     client_sock.sendall(response.encode('utf-8'))
 
-            elif msg == "bid?":
+            elif msg == "bid?" or msg == "my-turn?":
                 with self.lock:
                     if client_sock == self.current_player:
                         client_sock.sendall("yes".encode('utf-8'))
@@ -87,6 +89,17 @@ class Server:
                 with self.lock:
                     response = f"{(self.trump_card.ID, self.trump_card.suit)}"
                     client_sock.sendall(response.encode('utf-8'))
+
+            elif msg == "played-cards":
+                with self.lock:
+                    response = f"{self.played_cards}"
+                    client_sock.sendall(response.encode('utf-8'))
+
+            elif msg.startswith("new-played"):
+                with self.lock:
+                    card_str = msg[len("new-played "):].strip()
+                    card = ast.literal_eval(card_str)
+                    self.played_cards.append(card)
 
             elif msg.startswith("Bid is: "):
                 with self.lock:
