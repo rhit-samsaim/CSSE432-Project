@@ -1,3 +1,4 @@
+import ast
 import socket
 
 
@@ -41,3 +42,18 @@ class Client:
                 ready_states = message[len("update_ready_states:"):].split(',')
                 print("Updated Ready States:", ready_states)
                 return ready_states
+
+    def get_client_game_info(self):
+        self.send("played-cards")
+        self.played_cards = ast.literal_eval(self.receive())
+
+        self.send("tricks-taken")
+        data = self.receive()
+        all_part, you_part = data.split(";")
+        all_part = all_part.strip()
+        you_part = you_part.strip()
+        self.tricks_taken = ast.literal_eval(all_part[len("all:"):])
+        self.my_tricks = int(you_part[len("you:"):])
+
+        self.send("my-turn?")
+        return self.receive()

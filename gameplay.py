@@ -68,7 +68,6 @@ def create_host_game(server):
     server_hand = start_round(server, deck, player_index)
 
     while True:
-
         if phase == "players_bidding":
             if server.check_bids():
                 phase = "game"
@@ -81,12 +80,12 @@ def create_host_game(server):
                 server_hand.remove(card)
                 taken_turn = True
                 if server.check_all_went():  # Round ended
-                    end_of_trick(server, deck, server_hand)
+                    end_of_trick(server, deck, server_hand, player_index)
                 else:
                     server.next_player()
 
             if server.check_all_went():  # Round ended
-                end_of_trick(server, deck, server_hand)
+                end_of_trick(server, deck, server_hand, player_index)
 
         check_server_inputs(server, player_index)
         draw_server_screen(player_index, server_hand, server.trump_card, server.played_cards)
@@ -111,20 +110,9 @@ def create_client_game(client):
         check_client_inputs(client)
 
         if phase == "game":
-            client.send("played-cards")
-            client.played_cards = ast.literal_eval(client.receive())
-
-            client.send("tricks-taken")
-            data = client.receive()
-            all_part, you_part = data.split(";")
-            all_part = all_part.strip()
-            you_part = you_part.strip()
-            client.tricks_taken = ast.literal_eval(all_part[len("all:"):])
-            client.my_tricks = int(you_part[len("you:"):])
-
-            client.send("my-turn?")
-            response = client.receive()
+            response = client.get_client_game_info()
             draw_client_screen(client, client.hand, trump_card, client.played_cards)
+
             if response == "yes":
                 card = choose_card(client.hand, client.played_cards)
                 client.send(f"new-played {card}")
@@ -203,7 +191,7 @@ def check_client_inputs(client):
 
 
 def choose_card(hand, played_cards):
-    spacing = 80
+    spacing = 200
     card_width = 200
     card_height = 400
     card_y = 600
@@ -232,7 +220,7 @@ def choose_card(hand, played_cards):
 
 
 def draw_hand(hand, trump_card, y_pos):
-    spacing = 80
+    spacing = 200
 
     if trump_card is not None:
         # Draw Trump Card
@@ -279,7 +267,7 @@ def is_valid_play(card_to_play, hand, played_cards):
         return True
 
 
-def end_of_trick(server, deck, server_hand):
+def end_of_trick(server, deck, server_hand, player_index):
     global phase, taken_turn
 
     taken_turn = False
@@ -304,10 +292,8 @@ def end_of_trick(server, deck, server_hand):
     if len(server_hand) == 0 and all(len(hand) == 0 for hand in server.client_hands):
         # calculate_scores(server, players)  # TODO: DO LATER
         phase = "bidding"
-        deck.deal()
-        server.initialize_hands()
-        server.trump_card = deck.trump_card
-        server.setup_hands(deck)
+        server_hand[:] = start_round(server, deck, player_index)
+
 
 
 def get_round_winner(played_cards, trump_suit):
