@@ -1,16 +1,14 @@
 import ast
 import socket
+from player import Player
 
 
-class Client:
+class Client(Player):
     def __init__(self, host):
+        super().__init__(self)
         self.host = host
         self.port = 5411
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.hand = []
-        self.played_cards = []
-        self.tricks_taken = []
-        self.my_tricks = 0
 
     def connect(self):
         try:

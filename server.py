@@ -1,28 +1,32 @@
 import ast
 import socket
 import threading
+from time import sleep
+from player import Player
 
 
-class Server:
+class Server(Player):
     def __init__(self, max_clients=5, port=5411):
+        super().__init__(self)
         self.max_clients = max_clients
         self.port = port
-        self.connected_clients = []
-        self.ready_statuses = [False]
         self.lock = threading.Lock()  # Lock to ensure thread-safe
         self.running = False  # Flag to see if server is running
         self.start_game = False
-        self.game = None
+        self.signal_new_round = False
+        self.all_bid = False
+        self.round_starter = self
         self.current_player = None
+        self.game = None
+        self.trump_card = None
+        self.ready_statuses = [False]
+        self.connected_clients = []
         self.player_bids = []
         self.client_hands = []
-        self.all_bid = False
-        self.trump_card = None
         self.played_cards = []
         self.play_order = []
+        self.player_points = []
         self.tricks_taken = []
-        self.signal_new_round = False
-        self.round_starter = self
 
     def start(self):
         self.running = True
@@ -38,6 +42,7 @@ class Server:
         print("Server is listening on port", self.port)
 
         # Loop to continuously accept new clients
+
         while self.running and len(self.connected_clients) < self.max_clients:
             client_sock, addr = server_sock.accept()
             with self.lock:
@@ -87,6 +92,8 @@ class Server:
                 with self.lock:
                     if self.signal_new_round:
                         client_sock.sendall("yes".encode('utf-8'))
+                        sleep(0.5)
+                        client_sock.sendall(str(self.player_points[self.connected_clients.index(client_sock)]).encode('utf-8'))
                     else:
                         client_sock.sendall("no".encode('utf-8'))
 
@@ -155,6 +162,7 @@ class Server:
     def initialize_hands(self):
         self.player_bids = [-1] * (len(self.connected_clients) + 1)
         self.client_hands = [-1] * len(self.connected_clients)
+        self.player_points = [0] * (len(self.connected_clients) + 1)
         self.tricks_taken = [0] * (len(self.connected_clients) + 1)
         self.played_cards = []
         self.play_order = []
