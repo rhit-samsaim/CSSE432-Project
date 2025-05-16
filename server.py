@@ -5,7 +5,7 @@ from player import Player
 
 
 class Server(Player):
-    def __init__(self, max_clients=5, port=5411):
+    def __init__(self, max_clients=5, port=5412):
         super().__init__(self)
         self.max_clients = max_clients
         self.port = port

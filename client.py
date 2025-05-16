@@ -7,7 +7,7 @@ class Client(Player):
     def __init__(self, host):
         super().__init__(self)
         self.host = host
-        self.port = 5411
+        self.port = 5412
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def connect(self):

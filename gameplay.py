@@ -24,7 +24,7 @@ def draw_server_screen(server, hand, trump_card, played_cards, points):
 
     if phase == "bidding" and server.current_player == server:
         draw_bidding_phase()
-    elif phase == "players_bidding":
+    elif phase == "players_bidding" or phase == "bidding":
         idle_message = font.render("Waiting For Players to Bid...", True, (0, 0, 0))
         screen.blit(idle_message, ((width / 2 - 300), (height / 4 - 100)))
 
@@ -93,6 +93,9 @@ def create_host_game(server):
         if phase == "game":
             if server.current_player == server and not taken_turn:  # Server's turn
                 draw_server_screen(server, server_hand, server.trump_card, server.played_cards, server.points)
+                turn_msg = font.render("Please Select A Card", True, (0, 0, 0))
+                screen.blit(turn_msg, (width / 2 - 250, 300))
+                pygame.display.flip()
                 card = choose_card(server_hand, server.played_cards)
                 server.played_cards.append(card)
                 server.play_order.append(server.current_player)
@@ -118,7 +121,6 @@ def create_client_game(client):
     while True:
         client.send("new-round?")
         response = client.receive()
-
         if response == "yes":
             phase = "bidding"
             client.send("start-round")
@@ -134,11 +136,21 @@ def create_client_game(client):
             draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
 
             if response == "yes":
+                turn_msg = font.render("Please Select A Card", True, (0, 0, 0))
+                screen.blit(turn_msg, (width / 2 - 250, 300))
+                pygame.display.flip()
                 card = choose_card(client.hand, client.played_cards)
                 client.send(f"new-played {card}")
                 client.hand.remove(card)
+                draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
 
-        draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
+            elif response == "no":
+                turn_msg = font.render("Waiting for Players...", True, (0, 0, 0))
+                screen.blit(turn_msg, (width / 2 - 240, 300))
+                pygame.display.flip()
+
+        else:
+            draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
 
 
 def start_round(server, deck):
