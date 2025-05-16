@@ -44,17 +44,22 @@ class Deck:
     def deal(self):
         self.hands = {player: [] for player in self.players}
         self.round += 1
-        random.shuffle(self.deck)
-        total_cards = self.round * self.num_players
-        for i in range(total_cards):
-            card = self.deck[i]
-            player = self.players[i % self.num_players]
-            self.hands[player].append(card)
-        if total_cards < len(self.deck):
-            self.trump_card = self.deck[total_cards]
-        else:
-            self.trump_card = None
-
+        while True:
+            random.shuffle(self.deck)
+            total_cards = self.round * self.num_players
+            for i in range(total_cards):
+                card = self.deck[i]
+                player = self.players[i % self.num_players]
+                self.hands[player].append(card)
+            if total_cards < len(self.deck):
+                self.trump_card = self.deck[total_cards]
+                if self.trump_card.ID in (JESTER, WIZARD):
+                    continue  # Try again
+                else:
+                    break
+            else:
+                self.trump_card = None
+                break
 
     def init_deck(self):
         for i in range(0, 15):

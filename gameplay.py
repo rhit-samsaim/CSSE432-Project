@@ -1,5 +1,4 @@
 import ast
-import random
 import sys
 import pygame
 from typing import Optional
@@ -19,8 +18,8 @@ bid_input = ''
 def draw_server_screen(server, hand, trump_card, played_cards, points):
     global phase
     screen.fill((0, 128, 0))
-    draw_hand(hand, trump_card, 600)
-    draw_hand(played_cards, None, 50)
+    draw_hand(hand, trump_card, 500)
+    draw_hand(played_cards, None, 70)
     draw_points(server.points)
 
     if phase == "bidding" and server.current_player == server:
@@ -29,22 +28,31 @@ def draw_server_screen(server, hand, trump_card, played_cards, points):
         idle_message = font.render("Waiting For Players to Bid...", True, (0, 0, 0))
         screen.blit(idle_message, ((width / 2 - 300), (height / 4 - 100)))
 
+    your_cards_msg = font.render("Your Cards:", True, (0, 0, 0))
+    screen.blit(your_cards_msg, (45, 430))
+
     pygame.display.flip()
 
 
 def draw_client_screen(client, hand, trump_card, played_cards, points):
     global phase
     screen.fill((0, 128, 0))
-    draw_hand(hand, trump_card, 600)
+    draw_hand(hand, trump_card, 500)
     draw_points(client.points)
     if played_cards is not []:
-        draw_hand(played_cards, None, 50)
+        draw_hand(played_cards, None, 70)
 
     if phase == "bidding":
         client.send("bid?")
         data = client.receive()
         if data == "yes":
             draw_bidding_phase()
+        else:
+            idle_message = font.render("Waiting For Players to Bid...", True, (0, 0, 0))
+            screen.blit(idle_message, ((width / 2 - 300), (height / 4 - 100)))
+
+    your_cards_msg = font.render("Your Cards:", True, (0, 0, 0))
+    screen.blit(your_cards_msg, (45, 430))
 
     pygame.display.flip()
 
@@ -110,15 +118,14 @@ def create_client_game(client):
     while True:
         client.send("new-round?")
         response = client.receive()
+
         if response == "yes":
             phase = "bidding"
-            client.send("hand-please")
-            client.hand = ast.literal_eval(client.receive())
+            client.send("start-round")
+            hand_and_trump = ast.literal_eval(client.receive())
+            client.hand = hand_and_trump["hand"]
             client.played_cards = []
-
-            client.send("trump-card")
-            trump_data = ast.literal_eval(client.receive())
-            trump_card = Card(trump_data[0], trump_data[1])
+            trump_card = Card(*hand_and_trump["trump"])
 
         check_client_inputs(client)
 
@@ -159,6 +166,8 @@ def check_server_inputs(server):
                     server.player_bids[0] = bid_input
                     bid_input = ''
                     phase = "players_bidding"
+                    server.next_player()
+                    server.signal_new_round = False
 
             elif event.key == pygame.K_BACKSPACE:
                 bid_input = bid_input[:-1]
@@ -189,14 +198,18 @@ def check_client_inputs(client):
 
 
 def choose_card(hand, played_cards):
-    spacing = 200
-    card_width = 200
-    card_height = 400
-    card_y = 600
+    spacing = 160
+    card_width = 150
+    card_height = 300
     card_rects = []
 
     for i in range(len(hand)):
-        card_x = 50 + i * spacing
+        if i > 9:
+            card_x = 50 + (i - 10) * spacing
+            card_y = 910
+        else:
+            card_x = 50 + i * spacing
+            card_y = 600
         rect = pygame.Rect(card_x, card_y, card_width, card_height)
         card_rects.append(rect)
 
@@ -218,23 +231,30 @@ def choose_card(hand, played_cards):
 
 
 def draw_hand(hand, trump_card, y_pos):
-    spacing = 200
+    spacing = 160
 
     if trump_card is not None:
         # Draw Trump Card
         trump_caption = font.render("Trump:", True, (0, 0, 0))
-        screen.blit(trump_caption, (width - 240, 0))
+        screen.blit(trump_caption, (width - 240, 10))
         trump = Card(trump_card.ID, trump_card.suit)
         trump_pic = pygame.image.load(trump.image)
-        trump_pic = pygame.transform.scale(trump_pic, (200, 400))
-        screen.blit(trump_pic, (width - 250, 50))
+        trump_pic = pygame.transform.scale(trump_pic, (150, 300))
+        screen.blit(trump_pic, (width - 230, 70))
+
+        # Draw Played_cards (just once so in this one is fine)
+        played_caption = font.render("Played Cards:", True, (0, 0, 0))
+        screen.blit(played_caption, (50, 10))
 
     for i, (ID, suit) in enumerate(hand):
         card = Card(ID, suit)
         try:
             card_pic = pygame.image.load(card.image)
-            card_pic = pygame.transform.scale(card_pic, (200, 400))
-            screen.blit(card_pic, (50 + i * spacing, y_pos))
+            card_pic = pygame.transform.scale(card_pic, (150, 300))
+            if i > 9:
+                screen.blit(card_pic, (50 + (i - 10) * spacing, y_pos + 310))
+            else:
+                screen.blit(card_pic, (50 + i * spacing, y_pos))
         except pygame.error as e:
             print(f"Failed to load image for card ({ID}, {suit}): {e}")
 

@@ -99,16 +99,14 @@ class Server(Player):
                     print(self.connected_clients.index(client_sock))
                     client_sock.sendall(str(self.player_points[self.connected_clients.index(client_sock)]).encode('utf-8'))
 
-            elif msg == "hand-please":
+            elif msg == "start-round":
                 with self.lock:
                     index = self.connected_clients.index(client_sock)
-                    bid = f"{self.client_hands[index]}"
-                    client_sock.sendall(bid.encode('utf-8'))
-
-            elif msg == "trump-card":
-                with self.lock:
-                    response = f"{(self.trump_card.ID, self.trump_card.suit)}"
-                    client_sock.sendall(response.encode('utf-8'))
+                    data = {
+                        "hand": self.client_hands[index],
+                        "trump": (self.trump_card.ID, self.trump_card.suit)
+                    }
+                    client_sock.sendall(str(data).encode('utf-8'))
 
             elif msg == "played-cards":
                 with self.lock:
