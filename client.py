@@ -53,5 +53,8 @@ class Client(Player):
         self.tricks_taken = ast.literal_eval(all_part[len("all:"):])
         self.my_tricks = int(you_part[len("you:"):])
 
+        self.send("points?")
+        self.points = int(self.receive())
+
         self.send("my-turn?")
         return self.receive()

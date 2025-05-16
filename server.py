@@ -1,7 +1,6 @@
 import ast
 import socket
 import threading
-from time import sleep
 from player import Player
 
 
@@ -92,10 +91,13 @@ class Server(Player):
                 with self.lock:
                     if self.signal_new_round:
                         client_sock.sendall("yes".encode('utf-8'))
-                        sleep(0.5)
-                        client_sock.sendall(str(self.player_points[self.connected_clients.index(client_sock)]).encode('utf-8'))
                     else:
                         client_sock.sendall("no".encode('utf-8'))
+
+            elif msg == "points?":
+                with self.lock:
+                    print(self.connected_clients.index(client_sock))
+                    client_sock.sendall(str(self.player_points[self.connected_clients.index(client_sock)]).encode('utf-8'))
 
             elif msg == "hand-please":
                 with self.lock:

@@ -2,7 +2,6 @@ import ast
 import random
 import sys
 import pygame
-import math
 from typing import Optional
 from scenes import init_gui
 from deck import Deck, Card
@@ -22,7 +21,7 @@ def draw_server_screen(server, hand, trump_card, played_cards, points):
     screen.fill((0, 128, 0))
     draw_hand(hand, trump_card, 600)
     draw_hand(played_cards, None, 50)
-    draw_points(points)
+    draw_points(server.points)
 
     if phase == "bidding" and server.current_player == server:
         draw_bidding_phase()
@@ -37,8 +36,7 @@ def draw_client_screen(client, hand, trump_card, played_cards, points):
     global phase
     screen.fill((0, 128, 0))
     draw_hand(hand, trump_card, 600)
-    draw_points(points)
-    print("drawing_points:", points)
+    draw_points(client.points)
     if played_cards is not []:
         draw_hand(played_cards, None, 50)
 
@@ -52,7 +50,7 @@ def draw_client_screen(client, hand, trump_card, played_cards, points):
 
 
 def draw_points(points):
-    rect = pygame.Rect(5, height - 55, 250, 52)
+    rect = pygame.Rect(5, height - 55, 275, 52)
     points_caption = font.render(f"Points: {points}", True, (0, 0, 0))
     pygame.draw.rect(screen, (200, 200, 200), rect)
     screen.blit(points_caption, (10, height - 50))
@@ -112,7 +110,6 @@ def create_client_game(client):
     while True:
         client.send("new-round?")
         response = client.receive()
-        client.points = int(client.receive())
         if response == "yes":
             phase = "bidding"
             client.send("hand-please")
@@ -328,8 +325,6 @@ def get_round_winner(played_cards, trump_suit):
                 best_index = index
             elif suit == best_suit and card_id > best_card[0]:
                 best_card = (card_id, suit)
-                best_index = index
-
     return best_index
 
 
@@ -341,5 +336,7 @@ def calculate_scores(server, players):
             server.player_points[player_index] += 20 + server.tricks_taken[player_index]
         else:
             server.player_points[player_index] -= (10 * abs(diff))
-        print(server.player_points)
-    return None
+        if p == server:
+            p.points = server.player_points[player_index]
+    print(server.player_points)
+    return
