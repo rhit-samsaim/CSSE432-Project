@@ -144,6 +144,7 @@ def create_client_game(client):
                 client.hand.remove(card)
                 draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
 
+
             elif response == "no":
                 turn_msg = font.render("Waiting for Players...", True, (0, 0, 0))
                 screen.blit(turn_msg, (width / 2 - 240, 300))
