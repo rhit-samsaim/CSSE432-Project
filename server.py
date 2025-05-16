@@ -5,7 +5,7 @@ from player import Player
 
 
 class Server(Player):
-    def __init__(self, max_clients=5, port=5411):
+    def __init__(self, max_clients=5, port=5412):
         super().__init__(self)
         self.max_clients = max_clients
         self.port = port
@@ -26,6 +26,7 @@ class Server(Player):
         self.play_order = []
         self.player_points = []
         self.tricks_taken = []
+
 
     def start(self):
         self.running = True
@@ -96,7 +97,6 @@ class Server(Player):
 
             elif msg == "points?":
                 with self.lock:
-                    print(self.connected_clients.index(client_sock))
                     client_sock.sendall(str(self.player_points[self.connected_clients.index(client_sock)]).encode('utf-8'))
 
             elif msg == "start-round":
@@ -104,7 +104,8 @@ class Server(Player):
                     index = self.connected_clients.index(client_sock)
                     data = {
                         "hand": self.client_hands[index],
-                        "trump": (self.trump_card.ID, self.trump_card.suit)
+                        "trump": (self.trump_card.ID, self.trump_card.suit),
+                        "played_cards": self.played_cards
                     }
                     client_sock.sendall(str(data).encode('utf-8'))
 
@@ -124,8 +125,7 @@ class Server(Player):
                 with self.lock:
                     card_str = msg[len("new-played "):].strip()
                     card = ast.literal_eval(card_str)
-                    self.played_cards.append(card)
-                    self.play_order.append(client_sock)
+                    self.adjust_played_cards(card, client_sock)
                     client_index = self.connected_clients.index(self.current_player)
                     self.client_hands[client_index].remove(card)
                     self.next_player()
@@ -164,12 +164,12 @@ class Server(Player):
         self.client_hands = [-1] * len(self.connected_clients)
         self.player_points = [0] * (len(self.connected_clients) + 1)
         self.tricks_taken = [0] * (len(self.connected_clients) + 1)
-        self.play_order = []
-        self.signal_new_round = True
         all_players = [self] + self.connected_clients
         current_index = all_players.index(self.round_starter)
         next_index = (current_index + 1) % len(all_players)
         self.round_starter = all_players[next_index]
+        self.current_player = self.round_starter
+        self.signal_new_round = True
 
     def setup_hands(self, deck):
         with self.lock:
@@ -195,4 +195,12 @@ class Server(Player):
 
     def check_all_went(self):
         return len(self.played_cards) == len([self] + self.connected_clients)
+
+    def adjust_played_cards(self, new_card, player):
+        if len(self.played_cards) + 1 > len([self] + self.connected_clients):
+            self.played_cards = []
+            self.play_order = []
+
+        self.played_cards.append(new_card)
+        self.play_order.append(player)
 

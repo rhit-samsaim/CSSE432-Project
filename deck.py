@@ -42,9 +42,9 @@ class Deck:
         self.trump_card = []
 
     def deal(self):
-        self.hands = {player: [] for player in self.players}
         self.round += 1
         while True:
+            self.hands = {player: [] for player in self.players}
             random.shuffle(self.deck)
             total_cards = self.round * self.num_players
             for i in range(total_cards):

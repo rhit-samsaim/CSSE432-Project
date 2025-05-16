@@ -97,8 +97,7 @@ def create_host_game(server):
                 screen.blit(turn_msg, (width / 2 - 250, 300))
                 pygame.display.flip()
                 card = choose_card(server_hand, server.played_cards)
-                server.played_cards.append(card)
-                server.play_order.append(server.current_player)
+                server.adjust_played_cards(card, server.current_player)
                 server_hand.remove(card)
                 taken_turn = True
                 if server.check_all_went():  # Round ended
@@ -106,7 +105,7 @@ def create_host_game(server):
                 else:
                     server.next_player()
 
-            if server.check_all_went():  # Round ended
+            elif server.check_all_went():  # Round ended
                 end_of_trick(server, deck, server_hand)
 
         check_server_inputs(server)
@@ -126,8 +125,8 @@ def create_client_game(client):
             client.send("start-round")
             hand_and_trump = ast.literal_eval(client.receive())
             client.hand = hand_and_trump["hand"]
-            client.played_cards = []
             trump_card = Card(*hand_and_trump["trump"])
+            client.played_cards = hand_and_trump["played_cards"]
 
         check_client_inputs(client)
 
@@ -155,7 +154,6 @@ def create_client_game(client):
 
 
 def start_round(server, deck):
-    server.next_player()
     deck.deal()
     server.initialize_hands()
 
@@ -316,11 +314,6 @@ def end_of_trick(server, deck, server_hand):
     else:
         server.tricks_taken[0] += 1
 
-    # Update current player and clear played cards
-    server.current_player = winner
-    server.played_cards = []  # TODO: CHANGE THIS
-    server.play_order = []
-
     # Check if all players have played all their cards (trick phase over)
     if len(server_hand) == 0 and all(len(hand) == 0 for hand in server.client_hands):
         players = [server]
@@ -329,6 +322,10 @@ def end_of_trick(server, deck, server_hand):
         calculate_scores(server, players)
         phase = "bidding"
         server_hand[:] = start_round(server, deck)
+
+    else:
+        # Update current player and clear played cards
+        server.current_player = winner
 
 
 def get_round_winner(played_cards, trump_suit):
@@ -371,5 +368,4 @@ def calculate_scores(server, players):
             server.player_points[player_index] -= (10 * abs(diff))
         if p == server:
             p.points = server.player_points[player_index]
-    print(server.player_points)
     return
