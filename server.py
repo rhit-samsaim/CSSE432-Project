@@ -5,7 +5,7 @@ from player import Player
 
 
 class Server(Player):
-    def __init__(self, max_clients=5, port=5412):
+    def __init__(self, max_clients=5, port=5411):
         super().__init__(self)
         self.max_clients = max_clients
         self.port = port
@@ -164,7 +164,6 @@ class Server(Player):
         self.client_hands = [-1] * len(self.connected_clients)
         self.player_points = [0] * (len(self.connected_clients) + 1)
         self.tricks_taken = [0] * (len(self.connected_clients) + 1)
-        self.played_cards = []
         self.play_order = []
         self.signal_new_round = True
         all_players = [self] + self.connected_clients
@@ -196,3 +195,4 @@ class Server(Player):
 
     def check_all_went(self):
         return len(self.played_cards) == len([self] + self.connected_clients)
+
