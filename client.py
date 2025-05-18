@@ -9,6 +9,8 @@ class Client(Player):
         self.host = host
         self.port = 5412
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.tricks_taken = []
+        self.player_bids = []
 
     def connect(self):
         try:
@@ -42,19 +44,14 @@ class Client(Player):
                 return ready_states
 
     def get_client_game_info(self):
-        self.send("played-cards")
-        self.played_cards = ast.literal_eval(self.receive())
+        self.send("game-state")
+        data = ast.literal_eval(self.receive())
 
-        self.send("tricks-taken")
-        data = self.receive()
-        all_part, you_part = data.split(";")
-        all_part = all_part.strip()
-        you_part = you_part.strip()
-        self.tricks_taken = ast.literal_eval(all_part[len("all:"):])
-        self.my_tricks = int(you_part[len("you:"):])
-
-        self.send("points?")
-        self.points = int(self.receive())
+        self.played_cards = data["played_cards"]
+        self.tricks_taken = data["tricks_taken"]
+        self.my_tricks = data["my_tricks"]
+        self.player_bids = data["player_bids"]
+        self.points = data["points"]
 
         self.send("my-turn?")
         return self.receive()

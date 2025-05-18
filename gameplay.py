@@ -21,6 +21,7 @@ def draw_server_screen(server, hand, trump_card, played_cards, points):
     draw_hand(hand, trump_card, 500)
     draw_hand(played_cards, None, 70)
     draw_points(server.points)
+    draw_player_bids(server.player_bids, server.tricks_taken)
 
     if phase == "bidding" and server.current_player == server:
         draw_bidding_phase()
@@ -39,6 +40,8 @@ def draw_client_screen(client, hand, trump_card, played_cards, points):
     screen.fill((0, 128, 0))
     draw_hand(hand, trump_card, 500)
     draw_points(client.points)
+    draw_player_bids(client.player_bids, client.tricks_taken)
+
     if played_cards is not []:
         draw_hand(played_cards, None, 70)
 
@@ -62,6 +65,20 @@ def draw_points(points):
     points_caption = font.render(f"Points: {points}", True, (0, 0, 0))
     pygame.draw.rect(screen, (200, 200, 200), rect)
     screen.blit(points_caption, (10, height - 50))
+
+
+def draw_player_bids(player_bids, tricks_taken):
+
+    for i in range(len(player_bids)):
+        rect = pygame.Rect(300 + (i * 250), height - 100, 220, 100)
+        pygame.draw.rect(screen, (200, 200, 200), rect)
+        bid_caption = font.render(f"Player {i + 1}:", True, (0, 0, 0))
+        if player_bids[i] == -1:
+            total_bids = font.render(f"{tricks_taken[i]} / ?", True, (0, 0, 0))
+        else:
+            total_bids = font.render(f"{tricks_taken[i]} / {player_bids[i]}", True, (0, 0, 0))
+        screen.blit(bid_caption, (300 + (i*250), height - 100))
+        screen.blit(total_bids, (300 + (i*250), height - 50))
 
 
 def draw_bidding_phase():
@@ -120,6 +137,11 @@ def create_client_game(client):
     while True:
         client.send("new-round?")
         response = client.receive()
+        client.send("player-bids?")
+        data = ast.literal_eval(client.receive())
+        client.player_bids = data["player_bids"]
+        client.tricks_taken = data["tricks_taken"]
+
         if response == "yes":
             phase = "bidding"
             client.send("start-round")
@@ -142,7 +164,6 @@ def create_client_game(client):
                 client.send(f"new-played {card}")
                 client.hand.remove(card)
                 draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
-
 
             elif response == "no":
                 turn_msg = font.render("Waiting for Players...", True, (0, 0, 0))
@@ -300,6 +321,7 @@ def end_of_trick(server, deck, server_hand):
     global phase, taken_turn
 
     taken_turn = False
+    server.prevent_trick = True
 
     # Get winner index from the played cards
     winner_index = get_round_winner(server.played_cards, server.trump_card.suit)

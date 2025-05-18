@@ -26,6 +26,7 @@ class Server(Player):
         self.play_order = []
         self.player_points = []
         self.tricks_taken = []
+        self.prevent_trick = False
 
 
     def start(self):
@@ -81,6 +82,14 @@ class Server(Player):
                     response = f"{self.start_game}"
                     client_sock.sendall(response.encode('utf-8'))
 
+            elif msg == "player-bids?":
+                with self.lock:
+                    data = {
+                        "player_bids": self.player_bids,
+                        "tricks_taken": self.tricks_taken,
+                    }
+                    client_sock.sendall(str(data).encode('utf-8'))
+
             elif msg == "bid?" or msg == "my-turn?":
                 with self.lock:
                     if client_sock == self.current_player:
@@ -95,10 +104,6 @@ class Server(Player):
                     else:
                         client_sock.sendall("no".encode('utf-8'))
 
-            elif msg == "points?":
-                with self.lock:
-                    client_sock.sendall(str(self.player_points[self.connected_clients.index(client_sock)]).encode('utf-8'))
-
             elif msg == "start-round":
                 with self.lock:
                     index = self.connected_clients.index(client_sock)
@@ -109,17 +114,18 @@ class Server(Player):
                     }
                     client_sock.sendall(str(data).encode('utf-8'))
 
-            elif msg == "played-cards":
-                with self.lock:
-                    response = f"{self.played_cards}"
-                    client_sock.sendall(response.encode('utf-8'))
-
-            elif msg == "tricks-taken":
+            elif msg == "game-state":
                 with self.lock:
                     index = self.connected_clients.index(client_sock)
-                    personal_tricks = self.tricks_taken[index + 1]
-                    message = f"all:{self.tricks_taken}; you:{personal_tricks}"
-                    client_sock.sendall(message.encode('utf-8'))
+                    state = {
+                        "played_cards": self.played_cards,
+                        "tricks_taken": self.tricks_taken,
+                        "player_bids": self.player_bids,
+                        "my_tricks": self.tricks_taken[index + 1],
+                        "points": self.player_points[index]
+                    }
+                    response = str(state)
+                    client_sock.sendall(response.encode('utf-8'))
 
             elif msg.startswith("new-played "):
                 with self.lock:
@@ -194,12 +200,13 @@ class Server(Player):
         self.current_player = all_players[next_index]
 
     def check_all_went(self):
-        return len(self.played_cards) == len([self] + self.connected_clients)
+        return len(self.played_cards) == len([self] + self.connected_clients) and not self.prevent_trick
 
     def adjust_played_cards(self, new_card, player):
         if len(self.played_cards) + 1 > len([self] + self.connected_clients):
             self.played_cards = []
             self.play_order = []
+            self.prevent_trick = False
 
         self.played_cards.append(new_card)
         self.play_order.append(player)
