@@ -99,11 +99,22 @@ def create_host_game(server):
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
     server.current_player = server
     server.player_points = [0] * (len(server.connected_clients) + 1)
+    # server.num_rounds = 60 / (len(server.connect_clients) + 1)
+    server.num_rounds = 2
     deck = Deck([server, *server.connected_clients])
 
     server_hand = start_round(server, deck)
 
     while True:
+        if server.num_rounds < server.cur_round:
+            server.game_over = True
+            if max(server.player_points) == server.player_points[0]:
+                handle_win()
+                continue
+            else:
+                handle_lose()
+                continue
+
         if phase == "players_bidding":
             if server.check_bids():
                 phase = "game"
@@ -138,6 +149,13 @@ def create_client_game(client):
     while True:
         client.send("new-round?")
         response = client.receive()
+        if response == "win":
+            handle_win()
+            continue
+        if response == "lose":
+            handle_lose()
+            continue
+
         client.send("player-bids?")
         data = ast.literal_eval(client.receive())
         client.player_bids = data["player_bids"]
@@ -157,6 +175,7 @@ def create_client_game(client):
         if phase == "game":
             response = client.get_client_game_info()
             draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
+            pygame.display.flip()
 
             if response == "yes":
                 turn_msg = font.render("Please Select A Card", True, (0, 0, 0))
@@ -166,6 +185,7 @@ def create_client_game(client):
                 client.send(f"new-played {card}")
                 client.hand.remove(card)
                 draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
+                pygame.display.flip()
 
             elif response == "no":
                 draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
@@ -175,6 +195,7 @@ def create_client_game(client):
 
         else:
             draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
+            pygame.display.flip()
 
 
 def start_round(server, deck):
@@ -185,6 +206,7 @@ def start_round(server, deck):
 
     server.trump_card = deck.trump_card
     server.setup_hands(deck)
+    server.cur_round += 1
 
     return server_hand
 
@@ -397,3 +419,15 @@ def calculate_scores(server, players):
         if p == server:
             p.points = server.player_points[player_index]
     return
+
+def handle_win():
+    screen.fill((0, 0, 0))
+    win_msg = font.render("You Win!", True, (255, 255, 255))
+    screen.blit(win_msg, (width/2 - 50, height/2 - 20))
+    pygame.display.flip()
+
+def handle_lose():
+    screen.fill((0, 0, 0))
+    lose_msg = font.render("You Lose!", True, (255, 255, 255))
+    screen.blit(lose_msg, (width/2 - 50, height/2 - 20))
+    pygame.display.flip()

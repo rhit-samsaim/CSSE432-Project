@@ -12,11 +12,12 @@ class Server(Player):
         self.lock = threading.Lock()  # Lock to ensure thread-safe
         self.running = False  # Flag to see if server is running
         self.start_game = False
+        self.game_over = False
         self.signal_new_round = False
         self.all_bid = False
+        self.num_rounds = 0
         self.round_starter = self
         self.current_player = None
-        self.game = None
         self.trump_card = None
         self.ready_statuses = [False]
         self.connected_clients = []
@@ -25,6 +26,7 @@ class Server(Player):
         self.played_cards = []
         self.play_order = []
         self.player_points = []
+        self.cur_round = 0
         self.tricks_taken = []
         self.prevent_trick = False
 
@@ -106,7 +108,9 @@ class Server(Player):
 
             elif msg == "new-round?":
                 with self.lock:
-                    if self.signal_new_round:
+                    if self.game_over:
+                        self.handle_game_over()
+                    elif self.signal_new_round:
                         client_sock.sendall("yes".encode('utf-8'))
                     else:
                         client_sock.sendall("no".encode('utf-8'))
@@ -216,3 +220,16 @@ class Server(Player):
         self.played_cards.append(new_card)
         self.play_order.append(player)
 
+    def handle_game_over(self):
+        max_points = max(self.player_points)
+        max_idx = self.player_points.index(max_points) - 1
+        if max_idx == -1:
+            for c in self.connected_clients:
+                c.sendall("lose".encode('utf-8'))
+
+        else:
+            for c in self.connected_clients:
+                if c == self.connected_clients[max_idx]:
+                    c.sendall("win".encode('utf-8'))
+                else:
+                    c.sendall("lose".encode('utf-8'))
