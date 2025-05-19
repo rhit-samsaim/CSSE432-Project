@@ -389,7 +389,6 @@ def calculate_scores(server, players):
     for p in players:
         player_index = players.index(p)
         diff = int(server.player_bids[player_index]) - int(server.tricks_taken[player_index])
-        print(f"Player index: {player_index} and Diff: {diff}")
         if diff == 0:
             server.player_points[player_index] += (20 + (int(server.tricks_taken[player_index]) * 10))
         else:
