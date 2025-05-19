@@ -305,8 +305,20 @@ def is_valid_play(card_to_play, hand, played_cards):
     if not played_cards:
         return True
 
-    # Get the suit of the first played card
-    _, lead_suit = played_cards[0]
+    # If the first card is a wizard, any card can be played
+    first_card_id, _ = played_cards[0]
+    if first_card_id == 14:
+        return True
+
+    lead_suit = None
+    for c_id, suit in played_cards:
+        if c_id != 0:  # not a jester
+            lead_suit = suit
+            break
+
+    # If no lead suit could be determined or first card is a jester
+    if lead_suit is None:
+        return True
 
     # Check if the player has any cards of the lead suit (excluding jesters/wizards)
     # Looked up best way to do this AS FYI
