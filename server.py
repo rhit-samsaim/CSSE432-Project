@@ -99,6 +99,11 @@ class Server(Player):
                     else:
                         client_sock.sendall("no".encode('utf-8'))
 
+            elif msg == "points?":
+                with self.lock:
+                    client_idx = self.connected_clients.index(client_sock) + 1
+                    client_sock.sendall(str(self.player_points[client_idx]).encode('utf-8'))
+
             elif msg == "new-round?":
                 with self.lock:
                     if self.signal_new_round:
@@ -124,7 +129,6 @@ class Server(Player):
                         "tricks_taken": self.tricks_taken,
                         "player_bids": self.player_bids,
                         "my_tricks": self.tricks_taken[index + 1],
-                        "points": self.player_points[index]
                     }
                     response = str(state)
                     client_sock.sendall(response.encode('utf-8'))

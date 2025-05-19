@@ -47,12 +47,10 @@ class Client(Player):
     def get_client_game_info(self):
         self.send("game-state")
         data = ast.literal_eval(self.receive())
-
         self.played_cards = data["played_cards"]
         self.tricks_taken = data["tricks_taken"]
         self.my_tricks = data["my_tricks"]
         self.player_bids = data["player_bids"]
-        self.points = data["points"]
 
         self.send("my-turn?")
         return self.receive()
