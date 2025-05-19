@@ -38,6 +38,8 @@ This project brings Wizard to life online by allowing multiple players to connec
    git clone https://github.com/rhit-samsaim/CSSE432-Project.git
    cd CSSE432-Project
 
+2. Run `python main.py` in a separate ubuntu terminal (per player)
+
 ## Authors
  - Ian Sawyer
  - Ian Samsa
