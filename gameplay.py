@@ -398,6 +398,9 @@ def get_round_winner(played_cards, trump_suit):
                 best_index = index
             elif suit == best_suit and card_id > best_card[0]:
                 best_card = (card_id, suit)
+            # Special condition for aces (we coded aces low on accident, but aces are high)
+            elif suit == best_suit and card_id == 1:
+                best_card = (card_id, suit)
 
     return best_index
 
