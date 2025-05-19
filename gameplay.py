@@ -15,13 +15,13 @@ taken_turn = False
 bid_input = ''
 
 
-def draw_server_screen(server, hand, trump_card, played_cards, points):
+def draw_server_screen(server, hand, trump_card, played_cards, player_points):
     global phase
     screen.fill((0, 128, 0))
     draw_hand(hand, trump_card, 500)
     draw_hand(played_cards, None, 70)
-    draw_points(server.points)
     draw_player_bids(server.player_bids, server.tricks_taken)
+    draw_points(player_points[0])
 
     if phase == "bidding" and server.current_player == server:
         draw_bidding_phase()
@@ -35,12 +35,12 @@ def draw_server_screen(server, hand, trump_card, played_cards, points):
     pygame.display.flip()
 
 
-def draw_client_screen(client, hand, trump_card, played_cards, points):
+def draw_client_screen(client, hand, trump_card, played_cards):
     global phase
     screen.fill((0, 128, 0))
     draw_hand(hand, trump_card, 500)
-    draw_points(client.points)
     draw_player_bids(client.player_bids, client.tricks_taken)
+    draw_points(client.points)
 
     if played_cards is not []:
         draw_hand(played_cards, None, 70)
@@ -98,6 +98,7 @@ def create_host_game(server):
     global screen, font, width, height, size, phase, bid_input, taken_turn
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
     server.current_player = server
+    server.player_points = [0] * (len(server.connected_clients) + 1)
     deck = Deck([server, *server.connected_clients])
 
     server_hand = start_round(server, deck)
@@ -109,7 +110,7 @@ def create_host_game(server):
 
         if phase == "game":
             if server.current_player == server and not taken_turn:  # Server's turn
-                draw_server_screen(server, server_hand, server.trump_card, server.played_cards, server.points)
+                draw_server_screen(server, server_hand, server.trump_card, server.played_cards, server.player_points)
                 turn_msg = font.render("Please Select A Card", True, (0, 0, 0))
                 screen.blit(turn_msg, (width / 2 - 250, 300))
                 pygame.display.flip()
@@ -126,7 +127,7 @@ def create_host_game(server):
                 end_of_trick(server, deck, server_hand)
 
         check_server_inputs(server)
-        draw_server_screen(server, server_hand, server.trump_card, server.played_cards, server.points)
+        draw_server_screen(server, server_hand, server.trump_card, server.played_cards, server.player_points)
 
 
 def create_client_game(client):
@@ -141,6 +142,8 @@ def create_client_game(client):
         data = ast.literal_eval(client.receive())
         client.player_bids = data["player_bids"]
         client.tricks_taken = data["tricks_taken"]
+        client.send("points?")
+        client.points = client.receive()
 
         if response == "yes":
             phase = "bidding"
@@ -154,7 +157,7 @@ def create_client_game(client):
 
         if phase == "game":
             response = client.get_client_game_info()
-            draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
+            draw_client_screen(client, client.hand, trump_card, client.played_cards)
 
             if response == "yes":
                 turn_msg = font.render("Please Select A Card", True, (0, 0, 0))
@@ -163,7 +166,7 @@ def create_client_game(client):
                 card = choose_card(client.hand, client.played_cards)
                 client.send(f"new-played {card}")
                 client.hand.remove(card)
-                draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
+                draw_client_screen(client, client.hand, trump_card, client.played_cards)
 
             elif response == "no":
                 turn_msg = font.render("Waiting for Players...", True, (0, 0, 0))
@@ -171,7 +174,7 @@ def create_client_game(client):
                 pygame.display.flip()
 
         else:
-            draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
+            draw_client_screen(client, client.hand, trump_card, client.played_cards)
 
 
 def start_round(server, deck):
@@ -384,10 +387,10 @@ def calculate_scores(server, players):
     for p in players:
         player_index = players.index(p)
         diff = int(server.player_bids[player_index]) - int(server.tricks_taken[player_index])
+        points = 0
         if diff == 0:
-            server.player_points[player_index] += 20 + server.tricks_taken[player_index]
+            points = 20 + server.tricks_taken[player_index]
         else:
-            server.player_points[player_index] -= (10 * abs(diff))
-        if p == server:
-            p.points = server.player_points[player_index]
+            points = -(10 * abs(diff))
+        server.player_points[player_index] += points
     return
