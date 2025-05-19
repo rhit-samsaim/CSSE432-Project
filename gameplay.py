@@ -70,7 +70,7 @@ def draw_points(points):
 def draw_player_bids(player_bids, tricks_taken):
 
     for i in range(len(player_bids)):
-        rect = pygame.Rect(300 + (i * 250), height - 100, 220, 100)
+        rect = pygame.Rect(300 + (i * 250), height - 100, 220, 92)
         pygame.draw.rect(screen, (200, 200, 200), rect)
         bid_caption = font.render(f"Player {i + 1}:", True, (0, 0, 0))
         if player_bids[i] == -1:
@@ -98,6 +98,7 @@ def create_host_game(server):
     global screen, font, width, height, size, phase, bid_input, taken_turn
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
     server.current_player = server
+    server.player_points = [0] * (len(server.connected_clients) + 1)
     deck = Deck([server, *server.connected_clients])
 
     server_hand = start_round(server, deck)
@@ -141,6 +142,7 @@ def create_client_game(client):
         data = ast.literal_eval(client.receive())
         client.player_bids = data["player_bids"]
         client.tricks_taken = data["tricks_taken"]
+        client.points = data["points"]
 
         if response == "yes":
             phase = "bidding"
@@ -359,6 +361,8 @@ def get_round_winner(played_cards, trump_suit):
 
     for index, (card_id, suit) in enumerate(played_cards):
         # First non-jester card sets the lead suit (unless it's a wizard)
+        if card_id == JESTER:
+            continue
         if lead_suit is None and card_id not in (JESTER, WIZARD):
             lead_suit = suit
 
@@ -377,17 +381,23 @@ def get_round_winner(played_cards, trump_suit):
                 best_index = index
             elif suit == best_suit and card_id > best_card[0]:
                 best_card = (card_id, suit)
+
     return best_index
 
 
 def calculate_scores(server, players):
+    print()
+    print(f"Server player points before: {server.player_points}")
+    print(f"Bids: {server.player_bids} and tricks: {server.tricks_taken}")
     for p in players:
         player_index = players.index(p)
         diff = int(server.player_bids[player_index]) - int(server.tricks_taken[player_index])
+        print(f"Player index: {player_index} and Diff: {diff}")
         if diff == 0:
-            server.player_points[player_index] += 20 + server.tricks_taken[player_index]
+            server.player_points[player_index] += (20 + (int(server.tricks_taken[player_index]) * 10))
         else:
             server.player_points[player_index] -= (10 * abs(diff))
         if p == server:
             p.points = server.player_points[player_index]
+    print(f"Server points after: {server.player_points}")
     return

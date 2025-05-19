@@ -11,6 +11,7 @@ class Client(Player):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.tricks_taken = []
         self.player_bids = []
+        self.points = 0
 
     def connect(self):
         try:

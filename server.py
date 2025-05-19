@@ -84,9 +84,11 @@ class Server(Player):
 
             elif msg == "player-bids?":
                 with self.lock:
+                    index = self.connected_clients.index(client_sock)
                     data = {
                         "player_bids": self.player_bids,
                         "tricks_taken": self.tricks_taken,
+                        "points": self.player_points[index + 1]
                     }
                     client_sock.sendall(str(data).encode('utf-8'))
 
@@ -168,7 +170,6 @@ class Server(Player):
     def initialize_hands(self):
         self.player_bids = [-1] * (len(self.connected_clients) + 1)
         self.client_hands = [-1] * len(self.connected_clients)
-        self.player_points = [0] * (len(self.connected_clients) + 1)
         self.tricks_taken = [0] * (len(self.connected_clients) + 1)
         all_players = [self] + self.connected_clients
         current_index = all_players.index(self.round_starter)
