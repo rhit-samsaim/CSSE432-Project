@@ -12,6 +12,7 @@ class Client(Player):
         self.tricks_taken = []
         self.player_bids = []
         self.points = 0
+        self.num_players = 0
 
     def connect(self):
         try:

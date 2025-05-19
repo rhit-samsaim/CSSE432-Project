@@ -13,6 +13,7 @@ size = None
 phase = "bidding"
 taken_turn = False
 bid_input = ''
+num_players = 0
 
 
 def draw_server_screen(server, hand, trump_card, played_cards, points):
@@ -95,8 +96,9 @@ def draw_bidding_phase():
 
 
 def create_host_game(server):
-    global screen, font, width, height, size, phase, bid_input, taken_turn
+    global screen, font, width, height, size, phase, bid_input, taken_turn, num_players
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
+    num_players = len(server.connected_clients) + 1
     server.current_player = server
     server.player_points = [0] * (len(server.connected_clients) + 1)
     deck = Deck([server, *server.connected_clients])
@@ -131,9 +133,11 @@ def create_host_game(server):
 
 
 def create_client_game(client):
-    global screen, font, width, height, size, bid_input, phase
+    global screen, font, width, height, size, bid_input, phase, num_players
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
     trump_card = None
+    client.send("num_players?")
+    num_players = ast.literal_eval(client.receive())
 
     while True:
         client.send("new-round?")
@@ -302,7 +306,7 @@ def is_valid_play(card_to_play, hand, played_cards):
         return True
 
     # No cards played yet -> any card is valid
-    if not played_cards:
+    if not played_cards or (len(played_cards) == num_players):
         return True
 
     # If the first card is a wizard, any card can be played
