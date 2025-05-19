@@ -13,6 +13,7 @@ size = None
 phase = "bidding"
 taken_turn = False
 bid_input = ''
+num_players = 0
 
 
 def draw_server_screen(server, hand, trump_card, played_cards, points):
@@ -95,8 +96,9 @@ def draw_bidding_phase():
 
 
 def create_host_game(server):
-    global screen, font, width, height, size, phase, bid_input, taken_turn
+    global screen, font, width, height, size, phase, bid_input, taken_turn, num_players
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
+    num_players = len(server.connected_clients) + 1
     server.current_player = server
     server.player_points = [0] * (len(server.connected_clients) + 1)
     # server.num_rounds = 60 / (len(server.connect_clients) + 1)
@@ -142,9 +144,11 @@ def create_host_game(server):
 
 
 def create_client_game(client):
-    global screen, font, width, height, size, bid_input, phase
+    global screen, font, width, height, size, bid_input, phase, num_players
     screen, font, width, height, size = init_gui(screen, font, width, height, size)
     trump_card = None
+    client.send("num_players?")
+    num_players = ast.literal_eval(client.receive())
 
     while True:
         client.send("new-round?")
@@ -324,11 +328,23 @@ def is_valid_play(card_to_play, hand, played_cards):
         return True
 
     # No cards played yet -> any card is valid
-    if not played_cards:
+    if not played_cards or (len(played_cards) == num_players):
         return True
 
-    # Get the suit of the first played card
-    _, lead_suit = played_cards[0]
+    # If the first card is a wizard, any card can be played
+    first_card_id, _ = played_cards[0]
+    if first_card_id == 14:
+        return True
+
+    lead_suit = None
+    for c_id, suit in played_cards:
+        if c_id != 0:  # not a jester
+            lead_suit = suit
+            break
+
+    # If no lead suit could be determined or first card is a jester
+    if lead_suit is None:
+        return True
 
     # Check if the player has any cards of the lead suit (excluding jesters/wizards)
     # Looked up best way to do this AS FYI
@@ -403,6 +419,9 @@ def get_round_winner(played_cards, trump_suit):
                 best_card = (card_id, suit)
                 best_index = index
             elif suit == best_suit and card_id > best_card[0]:
+                best_card = (card_id, suit)
+            # Special condition for aces (we coded aces low on accident, but aces are high)
+            elif suit == best_suit and card_id == 1:
                 best_card = (card_id, suit)
 
     return best_index

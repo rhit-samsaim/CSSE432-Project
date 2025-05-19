@@ -67,6 +67,11 @@ class Server(Player):
                     response = f"{len(self.connected_clients)},{self.max_clients},{self.ready_statuses}"
                 client_sock.sendall(response.encode('utf-8'))
 
+            elif msg == "num_players?":
+                with self.lock:
+                    response = f"{len(self.connected_clients) + 1}"
+                    client_sock.sendall(response.encode('utf-8'))
+
             elif msg == "ready":
                 with self.lock:
                     index = self.connected_clients.index(client_sock)
