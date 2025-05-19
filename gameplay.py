@@ -386,9 +386,6 @@ def get_round_winner(played_cards, trump_suit):
 
 
 def calculate_scores(server, players):
-    print()
-    print(f"Server player points before: {server.player_points}")
-    print(f"Bids: {server.player_bids} and tricks: {server.tricks_taken}")
     for p in players:
         player_index = players.index(p)
         diff = int(server.player_bids[player_index]) - int(server.tricks_taken[player_index])
@@ -399,5 +396,4 @@ def calculate_scores(server, players):
             server.player_points[player_index] -= (10 * abs(diff))
         if p == server:
             p.points = server.player_points[player_index]
-    print(f"Server points after: {server.player_points}")
     return
