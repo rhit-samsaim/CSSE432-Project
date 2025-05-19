@@ -168,6 +168,7 @@ def create_client_game(client):
                 draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
 
             elif response == "no":
+                draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
                 turn_msg = font.render("Waiting for Players...", True, (0, 0, 0))
                 screen.blit(turn_msg, (width / 2 - 240, 300))
                 pygame.display.flip()
