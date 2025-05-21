@@ -12,7 +12,7 @@ isClient = True
 
 
 def draw_screen(connected_count, max_clients, ready_states):
-    btn_w = 275
+    btn_w = 310
     btn_h = 60
 
     screen.fill((237, 232, 218))
@@ -21,13 +21,11 @@ def draw_screen(connected_count, max_clients, ready_states):
     screen.blit(bg_img, ((screen.get_width() // 2) - bg_img.get_width()//2 , screen.get_height() // 6 - bg_img.get_height()//6))
     btn_color = (120, 65, 26)
 
-
-
     if not isClient:
-        ready_btn = draw_button(screen, font, "Ready Up!", (screen.get_width() - 600), (screen.get_height() - 100), btn_w, btn_h, btn_color, (0, 0, 0))
-        start_btn = draw_button(screen, font, "Start Game", (screen.get_width() - 300), (screen.get_height() - 100), btn_w, btn_h, btn_color, (0, 0, 0))
+        ready_btn = draw_button(screen, font, "Ready Up!", (screen.get_width() - 660), (screen.get_height() - 100), btn_w, btn_h, btn_color, (0, 0, 0))
+        start_btn = draw_button(screen, font, "Start Game", (screen.get_width() - 330), (screen.get_height() - 100), btn_w, btn_h, btn_color, (0, 0, 0))
     else:
-        ready_btn = draw_button(screen, font, "Ready Up!", (screen.get_width() - 300), (screen.get_height() - 100), btn_w, btn_h, btn_color, (0, 0, 0))
+        ready_btn = draw_button(screen, font, "Ready Up!", (screen.get_width() - 330), (screen.get_height() - 100), btn_w, btn_h, btn_color, (0, 0, 0))
         start_btn = None
 
     for i in range(connected_count + 1):

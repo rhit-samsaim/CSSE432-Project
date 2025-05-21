@@ -60,7 +60,7 @@ def draw_menu():
         pygame.draw.rect(screen, (238, 238, 238), text_box)
 
         # Draw text input
-        text_caption = font.render("Enter Host IP Below:", True, (0, 0, 0))
+        text_caption = font.render("Enter Host IP:", True, (0, 0, 0))
         screen.blit(text_caption, ((width / 2 - 250) + 10, (height / 2 - 50) + 10))
         input_surface = font.render(text_input, True, (0, 0, 0))
         screen.blit(input_surface, (text_box.x + 10, text_box.y + 30))

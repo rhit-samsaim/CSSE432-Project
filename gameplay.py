@@ -72,24 +72,20 @@ def draw_client_screen(client, hand, trump_card, played_cards, points):
 
 
 def draw_points(points):
-    rect = pygame.Rect(5, screen.get_height() - 55, 275, 52)
-    points_caption = font.render(f"Points: {points}", True, (0, 0, 0))
-    pygame.draw.rect(screen, (200, 200, 200), rect)
+    points_caption = font.render(f"Points: {points}", True, (255, 255, 255))
     screen.blit(points_caption, (10, screen.get_height() - points_caption.get_height()))
 
 
 def draw_player_bids(player_bids, tricks_taken):
 
     for i in range(len(player_bids)):
-        rect = pygame.Rect(300 + (i * 250), height - 100, 220, 92)
-        pygame.draw.rect(screen, (200, 200, 200), rect)
-        bid_caption = font.render(f"Player {i + 1}:", True, (0, 0, 0))
+        bid_caption = font.render(f"Player {i + 1}:", True, (255, 255, 255))
         if player_bids[i] == -1:
-            total_bids = font.render(f"{tricks_taken[i]} / ?", True, (0, 0, 0))
+            total_bids = font.render(f"{tricks_taken[i]} / ?", True, (255, 255, 255))
         else:
-            total_bids = font.render(f"{tricks_taken[i]} / {player_bids[i]}", True, (0, 0, 0))
-        screen.blit(bid_caption, (310 + (i*250), height - 100))
-        screen.blit(total_bids, (310 + (i*250), height - 60))
+            total_bids = font.render(f"{tricks_taken[i]} / {player_bids[i]}", True, (255, 255, 255))
+        screen.blit(bid_caption, (340 + (i*275), height - 120))
+        screen.blit(total_bids, (340 + (i*275), height - 60))
 
 
 def draw_bidding_phase():
@@ -99,7 +95,7 @@ def draw_bidding_phase():
     pygame.draw.rect(screen, (238, 238, 238), text_box)
 
     # Draw text input
-    text_caption = font.render("Enter Your Bid Below:", True, (0, 0, 0))
+    text_caption = font.render("Enter Your Bid:", True, (0, 0, 0))
     screen.blit(text_caption, ((width / 2 - 255), (height / 4 - 100)))
     input_surface = font.render(bid_input, True, (0, 0, 0))
     screen.blit(input_surface, (text_box.x + 10, text_box.y + 30))
