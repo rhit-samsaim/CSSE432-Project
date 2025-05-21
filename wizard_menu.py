@@ -24,13 +24,17 @@ logo_growing = True
 
 def draw_menu():
     global color1, color2, color3, logo_width, logo_height, logo_growing
-    btn_color = (255, 255, 255)
-    adjust_color()
-    background_color = (color1, color2, color3)
+    btn_color = (118, 65, 27)
+    # adjust_color()
+    # background_color = (color1, color2, color3)
     btn_w = 300
     btn_h = 100
 
-    screen.fill(background_color)
+    # screen.fill(background_color)
+    bg_img = pygame.image.load("assets/waiting_room.png")
+    bg_img = pygame.transform.scale(bg_img, (screen.get_width(), screen.get_height()))
+    screen.blit(bg_img, (0, 0))
+
     host_btn = draw_button(screen, font, "Host Game", (width / 2 - btn_w / 2), (height / 2 + 100), btn_w, btn_h, btn_color, (0, 0, 0))
     join_btn = draw_button(screen, font, "Join Game", (width / 2 - btn_w / 2), (height / 2 + 300), btn_w, btn_h, btn_color, (0, 0, 0))
 
@@ -45,7 +49,7 @@ def draw_menu():
         if logo_width == 0:
             logo_growing = True
 
-    logo = pygame.image.load("assets/wizard-logo.png")
+    logo = pygame.image.load("assets/wizard-logo2.png")
     logo = pygame.transform.scale(logo, (800 + logo_width, 400 + logo_height))
     screen.blit(logo, ((width / 2) - (400 + logo_width/2), 150 - logo_height/2))
 

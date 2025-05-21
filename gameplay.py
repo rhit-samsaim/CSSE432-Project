@@ -18,7 +18,12 @@ num_players = 0
 
 def draw_server_screen(server, hand, trump_card, played_cards, points):
     global phase
-    screen.fill((0, 128, 0))
+
+    # bg image setup
+    background_image = pygame.image.load("assets/waiting_room.png")  # Replace with your filename
+    background_scaled = pygame.transform.scale(background_image, (screen.get_width(), screen.get_height()))
+    screen.blit(background_scaled, (0, 0))
+
     draw_hand(hand, trump_card, 500)
     draw_hand(played_cards, None, 70)
     draw_points(server.points)
@@ -30,15 +35,20 @@ def draw_server_screen(server, hand, trump_card, played_cards, points):
         idle_message = font.render("Waiting For Players to Bid...", True, (0, 0, 0))
         screen.blit(idle_message, ((width / 2 - 300), (height / 4 - 100)))
 
-    your_cards_msg = font.render("Your Cards:", True, (0, 0, 0))
-    screen.blit(your_cards_msg, (45, 430))
+    # your_cards_msg = font.render("Your Cards:", True, (0, 0, 0))
+    # screen.blit(your_cards_msg, (45, 430))
 
     pygame.display.flip()
 
 
 def draw_client_screen(client, hand, trump_card, played_cards, points):
     global phase
-    screen.fill((0, 128, 0))
+
+    # bg image setup
+    background_image = pygame.image.load("assets/waiting_room.png")  # Replace with your filename
+    background_scaled = pygame.transform.scale(background_image, (screen.get_width(), screen.get_height()))
+    screen.blit(background_scaled, (0, 0))
+
     draw_hand(hand, trump_card, 500)
     draw_points(client.points)
     draw_player_bids(client.player_bids, client.tricks_taken)
@@ -62,10 +72,10 @@ def draw_client_screen(client, hand, trump_card, played_cards, points):
 
 
 def draw_points(points):
-    rect = pygame.Rect(5, height - 55, 275, 52)
+    rect = pygame.Rect(5, screen.get_height() - 55, 275, 52)
     points_caption = font.render(f"Points: {points}", True, (0, 0, 0))
     pygame.draw.rect(screen, (200, 200, 200), rect)
-    screen.blit(points_caption, (10, height - 50))
+    screen.blit(points_caption, (10, screen.get_height() - points_caption.get_height()))
 
 
 def draw_player_bids(player_bids, tricks_taken):
@@ -78,8 +88,8 @@ def draw_player_bids(player_bids, tricks_taken):
             total_bids = font.render(f"{tricks_taken[i]} / ?", True, (0, 0, 0))
         else:
             total_bids = font.render(f"{tricks_taken[i]} / {player_bids[i]}", True, (0, 0, 0))
-        screen.blit(bid_caption, (300 + (i*250), height - 100))
-        screen.blit(total_bids, (300 + (i*250), height - 50))
+        screen.blit(bid_caption, (310 + (i*250), height - 100))
+        screen.blit(total_bids, (310 + (i*250), height - 60))
 
 
 def draw_bidding_phase():
@@ -101,7 +111,7 @@ def create_host_game(server):
     num_players = len(server.connected_clients) + 1
     server.current_player = server
     server.player_points = [0] * (len(server.connected_clients) + 1)
-    # server.num_rounds = 60 / (len(server.connect_clients) + 1)
+    # server.num_rounds = 60 / (len(server.connected_clients) + 1)
     server.num_rounds = 2
     deck = Deck([server, *server.connected_clients])
 
@@ -137,6 +147,9 @@ def create_host_game(server):
                     server.next_player()
 
             elif server.check_all_went():  # Round ended
+                turn_msg = font.render("Waiting for Players...", True, (0, 0, 0))
+                screen.blit(turn_msg, (width / 2 - 240, 300))
+                pygame.display.flip()
                 end_of_trick(server, deck, server_hand)
 
         check_server_inputs(server)
@@ -297,15 +310,15 @@ def draw_hand(hand, trump_card, y_pos):
     if trump_card is not None:
         # Draw Trump Card
         trump_caption = font.render("Trump:", True, (0, 0, 0))
-        screen.blit(trump_caption, (width - 240, 10))
+        screen.blit(trump_caption, (screen.get_width() - 240, 0))
         trump = Card(trump_card.ID, trump_card.suit)
         trump_pic = pygame.image.load(trump.image)
         trump_pic = pygame.transform.scale(trump_pic, (150, 300))
-        screen.blit(trump_pic, (width - 230, 70))
+        screen.blit(trump_pic, (screen.get_width() - 230, screen.get_height() - screen.get_height() + 80))
 
         # Draw Played_cards (just once so in this one is fine)
         played_caption = font.render("Played Cards:", True, (0, 0, 0))
-        screen.blit(played_caption, (50, 10))
+        screen.blit(played_caption, (50, 0))
 
     for i, (ID, suit) in enumerate(hand):
         card = Card(ID, suit)
@@ -440,13 +453,65 @@ def calculate_scores(server, players):
     return
 
 def handle_win():
-    screen.fill((0, 0, 0))
-    win_msg = font.render("You Win!", True, (255, 255, 255))
-    screen.blit(win_msg, (width/2 - 50, height/2 - 20))
+    screen.fill((24, 38, 45))
+    btn_font = pygame.font.SysFont("liberationserif", 50, bold=True)
+
+    bg_img = pygame.image.load("assets/win_screen.png")
+    bg_img = pygame.transform.scale(bg_img, (screen.get_width(), screen.get_height()))
+    screen.blit(bg_img, (0, 0))
+
+    # Draw “Main Menu” button
+    btn_w, btn_h = 225, 70
+    btn_x = ((screen.get_width() - btn_w) // 2) - 10
+    btn_y = screen.get_height() - screen.get_height()//3
+    main_btn = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
+    main_btn_border = pygame.Rect(btn_x - 5, btn_y - 5, btn_w + 10, btn_h + 10)
+    pygame.draw.rect(screen, (29, 18, 11), main_btn_border, border_radius=10)      # button bg
+    pygame.draw.rect(screen, (161, 96, 37), main_btn, border_radius=10)      # button bg
+    btn_txt = btn_font.render("Exit", True, (43, 29, 11))
+    screen.blit(btn_txt, (btn_x + (btn_w - btn_txt.get_width())//2,
+                          btn_y + (btn_h - btn_txt.get_height())//1.5))
     pygame.display.flip()
 
+    # Wait for click
+    while True:
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+                if main_btn.collidepoint(ev.pos):
+                    pygame.quit()
+                    exit()
+                    return
 def handle_lose():
-    screen.fill((0, 0, 0))
-    lose_msg = font.render("You Lose!", True, (255, 255, 255))
-    screen.blit(lose_msg, (width/2 - 50, height/2 - 20))
+    screen.fill((24, 38, 45))
+    btn_font = pygame.font.SysFont("liberationserif", 50, bold=True)
+
+    lose_img = pygame.image.load("assets/lose_screen.png")
+    lose_img = pygame.transform.scale(lose_img, (screen.get_width(), screen.get_height()))
+    screen.blit(lose_img, (0, 0))
+
+    # Draw “Main Menu” button
+    btn_w, btn_h = 225, 70
+    btn_x = ((screen.get_width() - btn_w) // 2) - 10
+    btn_y = screen.get_height() - screen.get_height()//3
+    main_btn = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
+    main_btn_border = pygame.Rect(btn_x - 5, btn_y - 5, btn_w + 10, btn_h + 10)
+    pygame.draw.rect(screen, (29, 18, 11), main_btn_border, border_radius=10)      # button bg
+    pygame.draw.rect(screen, (161, 96, 37), main_btn, border_radius=10)      # button bg
+    btn_txt = btn_font.render("Exit", True, (43, 29, 11))
+    screen.blit(btn_txt, (btn_x + (btn_w - btn_txt.get_width())//2,
+                          btn_y + (btn_h - btn_txt.get_height())//1.5))
     pygame.display.flip()
+
+    # Wait for click
+    while True:
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+                if main_btn.collidepoint(ev.pos):
+                    pygame.quit()
+                    exit()
+                    return
