@@ -35,8 +35,8 @@ def draw_menu():
     bg_img = pygame.transform.scale(bg_img, (screen.get_width(), screen.get_height()))
     screen.blit(bg_img, (0, 0))
 
-    host_btn = draw_button(screen, font, "Host Game", (width / 2 - btn_w / 2), (height / 2 + 100), btn_w, btn_h, btn_color, (0, 0, 0))
-    join_btn = draw_button(screen, font, "Join Game", (width / 2 - btn_w / 2), (height / 2 + 300), btn_w, btn_h, btn_color, (0, 0, 0))
+    host_btn = draw_button(screen, font, "Host Game", (screen.get_width() / 2 - btn_w / 2), (screen.get_height() / 2 + 100), btn_w, btn_h, btn_color, (0, 0, 0))
+    join_btn = draw_button(screen, font, "Join Game", (screen.get_width() / 2 - btn_w / 2), (screen.get_height() / 2 + 300), btn_w, btn_h, btn_color, (0, 0, 0))
 
     if logo_growing:
         logo_width += 1
@@ -51,17 +51,17 @@ def draw_menu():
 
     logo = pygame.image.load("assets/wizard-logo2.png")
     logo = pygame.transform.scale(logo, (800 + logo_width, 400 + logo_height))
-    screen.blit(logo, ((width / 2) - (400 + logo_width/2), 150 - logo_height/2))
+    screen.blit(logo, ((screen.get_width() / 2) - (400 + logo_width/2), 150 - logo_height/2))
 
     if get_IP:
-        rect1 = pygame.Rect((width / 2 - 250), (height / 2 - 50), 500, 200)
-        text_box = pygame.Rect((width / 2 - 230), (height / 2 + 20), 460, 100)
+        rect1 = pygame.Rect((screen.get_width() / 2 - 250), (screen.get_height() / 2 - 50), 500, 200)
+        text_box = pygame.Rect((screen.get_width() / 2 - 230), (screen.get_height() / 2 + 20), 460, 100)
         pygame.draw.rect(screen, (187, 187, 187), rect1)
         pygame.draw.rect(screen, (238, 238, 238), text_box)
 
         # Draw text input
         text_caption = font.render("Enter Host IP:", True, (0, 0, 0))
-        screen.blit(text_caption, ((width / 2 - 250) + 10, (height / 2 - 50) + 10))
+        screen.blit(text_caption, ((screen.get_width() / 2 - 250) + 10, (screen.get_height() / 2 - 50) + 10))
         input_surface = font.render(text_input, True, (0, 0, 0))
         screen.blit(input_surface, (text_box.x + 10, text_box.y + 30))
 
