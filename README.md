@@ -1,4 +1,4 @@
-# Wizard Online (up for change)
+# Wizard Online
 
 A python implementation of the classic card game **Wizard**, playable over a network with friends.
 
