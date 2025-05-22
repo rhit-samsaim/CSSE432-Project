@@ -107,8 +107,8 @@ def create_host_game(server):
     num_players = len(server.connected_clients) + 1
     server.current_player = server
     server.player_points = [0] * (len(server.connected_clients) + 1)
-    # server.num_rounds = 60 / (len(server.connected_clients) + 1)
-    server.num_rounds = 2
+    server.num_rounds = 60 / (len(server.connected_clients) + 1)
+    #server.num_rounds = 2
     deck = Deck([server, *server.connected_clients])
 
     server_hand = start_round(server, deck)
@@ -202,8 +202,9 @@ def create_client_game(client):
 
             elif response == "no":
                 draw_client_screen(client, client.hand, trump_card, client.played_cards, client.points)
-                turn_msg = font.render("Waiting for Players...", True, (0, 0, 0))
-                screen.blit(turn_msg, (screen.get_width() / 2 - 240, 300))
+                #turn_msg = font.render("Waiting for Players...", True, (0, 0, 0))
+
+                #screen.blit(turn_msg, (screen.get_width() / 2 - 240, 300))
                 pygame.display.flip()
 
         else:
@@ -429,9 +430,11 @@ def get_round_winner(played_cards, trump_suit):
                 best_index = index
             elif suit == best_suit and card_id > best_card[0]:
                 best_card = (card_id, suit)
+                best_index = index
             # Special condition for aces (we coded aces low on accident, but aces are high)
             elif suit == best_suit and card_id == 1:
                 best_card = (card_id, suit)
+                best_index = index
 
     return best_index
 
