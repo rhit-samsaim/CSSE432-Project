@@ -35,8 +35,8 @@ def draw_server_screen(server, hand, trump_card, played_cards, points):
         idle_message = font.render("Waiting For Players to Bid...", True, (0, 0, 0))
         screen.blit(idle_message, ((screen.get_width() / 2 - 300), (screen.get_height() / 4 - 100)))
 
-    # your_cards_msg = font.render("Your Cards:", True, (0, 0, 0))
-    # screen.blit(your_cards_msg, (45, 430))
+    your_cards_msg = font.render("Your Cards:", True, (0, 0, 0))
+    screen.blit(your_cards_msg, (45, 430))
 
     pygame.display.flip()
 
@@ -107,8 +107,8 @@ def create_host_game(server):
     num_players = len(server.connected_clients) + 1
     server.current_player = server
     server.player_points = [0] * (len(server.connected_clients) + 1)
-    server.num_rounds = 60 / (len(server.connected_clients) + 1)
-    #server.num_rounds = 2
+    #server.num_rounds = 60 / (len(server.connected_clients) + 1)
+    server.num_rounds = 2
     deck = Deck([server, *server.connected_clients])
 
     server_hand = start_round(server, deck)
